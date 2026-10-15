@@ -1,0 +1,8 @@
+# Run: --ui-window=720x1280 --ui-screen=../match/match --match-mission=3 --match-skip-scenes --session-seed=1 --match-touch
+# The defeat result screen in portrait.
+until match 600
+until play 3000
+cheat lose
+until results 3000
+wait 10
+capture end-lose.png

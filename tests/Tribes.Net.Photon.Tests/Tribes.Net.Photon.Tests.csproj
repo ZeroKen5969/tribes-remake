@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tests of the Photon transport: wire format, addresses, settings, the transport and room browser
+    against an in-memory Photon cloud (deterministic, with sessions and host migration on top), and
+    live checks against the real Photon Cloud that run only with TRIBES_PHOTON_LIVE=1.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Tribes.Net.Photon\Tribes.Net.Photon.csproj" />
+    <ProjectReference Include="..\..\src\Tribes.Net\Tribes.Net.csproj" />
+    <!-- Photon's own types (log levels) for the checks of the SDK adapter. -->
+    <Reference Include="PhotonClient">
+      <HintPath>..\..\third_party\photon\lib\netstandard2.0\PhotonClient.dll</HintPath>
+    </Reference>
+    <!-- The stand-in rules of the network tests: a hash chain over every tick and command. -->
+    <Compile Include="..\Tribes.Net.Tests\Support\HashChainSimulation.cs" Link="Support\HashChainSimulation.cs" />
+  </ItemGroup>
+
+</Project>

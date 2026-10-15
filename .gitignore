@@ -1,0 +1,33 @@
+# Secrets: tokens, signing keys and the Photon AppId never go into the repository.
+secrets/
+*.keystore
+*.jks
+*.pem
+
+# The other two repositories, cloned into place (see README.md):
+# the content (data/: rules, maps, texts, art, music) and the original game (original/).
+/data/
+/original/
+
+# Build output (the update tokens are written only under obj/ while building)
+bin/
+obj/
+/build/
+client/.godot/
+client/android/
+client/content/
+client/assets/
+
+# Downloaded tools and SDKs (see docs/BUILD.md for where to get them)
+tools/jdk17.zip
+tools/jdk17_unz/
+tools/cmdline-tools.zip
+
+# Local working area: editors, emulator data, scratch tests, notes
+/work/
+
+# Crash dumps and editor files
+*.stackdump
+.vs/
+.vscode/
+*.user

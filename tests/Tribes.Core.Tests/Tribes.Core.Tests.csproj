@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Tests of the new rules; Tribes.Legacy is the reference they are compared with. -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <!-- The comparisons with the original (tests in Original/) build only when the original
+       repository is cloned into original/; the rest of the tests need nothing from it. -->
+  <PropertyGroup>
+    <WithOriginal Condition="Exists('$(MSBuildThisFileDirectory)..\..\original\src\Tribes.Legacy\Tribes.Legacy.csproj')">true</WithOriginal>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Tribes.Core\Tribes.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(WithOriginal)' == 'true'">
+    <ProjectReference Include="..\..\original\src\Tribes.Legacy\Tribes.Legacy.csproj" />
+    <ProjectReference Include="..\..\original\tools\Tribes.Trace\Tribes.Trace.csproj" />
+    <ProjectReference Include="..\..\original\tests\Tribes.Parity\Tribes.Parity.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(WithOriginal)' != 'true'">
+    <Compile Remove="Original\**" />
+  </ItemGroup>
+
+</Project>

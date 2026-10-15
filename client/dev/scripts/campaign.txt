@@ -1,0 +1,48 @@
+# Run (from the main menu): --match-skip-scenes --session-seed=1
+# From the main menu: campaign, start the first mission, save, load, win (development cheat), back to the campaign list.
+until menu 900
+press text:menu.campaign
+wait 20
+capture flow-01-campaign.png
+press text:campaign.start
+until match 900
+until play 6000
+dump
+expect tribe 0
+# Slot 1 starts empty.
+deletesave campaign 1
+# Save into slot 1 from the game menu (with its picture), then load it back.
+key Escape
+wait 10
+press SaveChoice
+wait 3
+press Slot1
+wait 5
+capture flow-02-saved.png
+# Closing the slot list goes back to the menu.
+key Escape
+wait 10
+expect popup PauseMenu
+press LoadChoice
+wait 3
+capture flow-03-load.png
+press Slot1
+wait 3
+press text:common.yes
+until match 900
+until play 3000
+dump
+# Win (development cheat). The first chapter ends with its second part (mission 1, played on in this
+# world), so this victory has no next mission: back to the campaign list.
+cheat win
+until results 3000
+capture flow-04-results.png
+expect nocontrol NextButton
+press ContinueButton
+until campaignlist 900
+wait 10
+capture flow-05-campaign.png
+# Deleting a save takes its picture with it.
+deletesave campaign 1
+expect nofile user://saves/campaign-1.save
+expect nofile user://saves/campaign-1.png

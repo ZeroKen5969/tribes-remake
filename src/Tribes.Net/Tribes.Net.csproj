@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Network play: rooms, lobby and deterministic lockstep over a replaceable transport
+    (in-process loopback, LAN; Photon in Tribes.Net.Photon). No engine dependency, so the Godot client and the
+    tests use the same code. Quality rules match Tribes.Core: nullable references, the
+    recommended analyzers, code style, and warnings as errors.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Tribes.Net</RootNamespace>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Tribes.Net.Tests" />
+    <!-- The Photon transport shares the wire codecs and the round-trip estimator. -->
+    <InternalsVisibleTo Include="Tribes.Net.Photon" />
+    <InternalsVisibleTo Include="Tribes.Net.Photon.Tests" />
+  </ItemGroup>
+
+</Project>

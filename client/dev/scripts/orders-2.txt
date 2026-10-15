@@ -1,0 +1,88 @@
+# Run: --ui-screen=../match/match --match-mission=2 --match-skip-scenes --match-speed=400 --session-seed=1
+# The remaining order kinds through the interface, mission 2.
+until match 600
+until play 3000
+# DemolishBuilding: plan a hut, then call the site off.
+key B
+press Build2
+ghostfree
+ticks 3
+expect applied PlaceBuilding
+tapbuilding -1
+press DemolishButton
+wait 3
+capture orders2-demolish.png
+press text:common.yes
+ticks 3
+expect applied DemolishBuilding
+# Get work going: a unit gathers, the armoury gets an order (its smith goes inside).
+tapunit 3
+rnearest node
+tapbuilding 0
+press More0
+ticks 220
+# DeliverToStore from the unit panel's store button.
+tapunit 3
+dump
+press StoreButton
+wait 3
+capture orders2-deliver.png
+press DeliverButton
+ticks 3
+expect applied DeliverToStore
+# CallOutUnit from the roster: a villager is sent into the armoury first (it works there).
+tapunit 5
+rclickcell 17 62
+until inside 4000
+key R
+wait 3
+capture orders2-roster.png
+press prefix:CallOut
+ticks 3
+expect applied CallOutUnit
+# EvictUnit: another villager goes into the armoury and is sent out from its panel.
+tapunit 6
+rclickcell 17 62
+tapunit 7
+rclickcell 13 69
+until evictable 4000
+tapevictable
+wait 3
+capture orders2-evict.png
+press prefix:Evict
+ticks 3
+expect applied EvictUnit
+# AppointChief: the tribe waits for a new chief (development cheat), then the roster names one.
+cheat chief
+key R
+wait 3
+press prefix:Appoint
+ticks 3
+expect applied AppointChief
+# CastSpell and CastSpellAt: a sanctuary, finished and upgraded with development cheats.
+key B
+press Build8
+ghostfree
+ticks 3
+tapbuilding -1
+cheat finish
+ticks 40
+tapbuilding 8
+wait 3
+capture orders2-sanctuary.png
+press Spell0
+tapunit 0
+ticks 3
+expect applied CastSpell
+cheat unlock 8 2
+tapbuilding 8
+press UpgradeButton
+ticks 5
+cheat finish
+ticks 40
+tapbuilding 8
+press Spell3
+tapcell 12 66
+ticks 3
+expect applied CastSpellAt
+dump

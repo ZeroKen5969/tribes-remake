@@ -1,0 +1,19 @@
+# Run: --ui-screen=../match/match --match-mission=2 --match-skip-scenes --session-seed=1
+# A hint dialog, then the victory result screen and on to the next chapter (mission 3).
+until match 600
+until play 3000
+tapunit 0
+rnearest node
+cheat hint 14
+wait 3
+wait 5
+capture end-hint.png
+press NoButton
+cheat win
+until results 3000
+wait 10
+capture end-win.png
+press NextButton
+until match 900
+until play 6000
+expect mission 3

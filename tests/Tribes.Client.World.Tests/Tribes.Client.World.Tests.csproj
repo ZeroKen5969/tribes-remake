@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tests of the client's world view scene code (client/src/World/Scene, engine independent):
+    every dev snapshot drawn by it must equal the original's frame (client/dev/reference, written
+    by tools/Tribes.DevSnapshots/reference.sh), plus the tribe colours, floating numbers, arcs and
+    smooth motion.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Tribes.Core\Tribes.Core.csproj" />
+    <ProjectReference Include="..\..\src\Tribes.Graphics\Tribes.Graphics.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\client\src\World\Scene\**\*.cs" Link="Scene\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

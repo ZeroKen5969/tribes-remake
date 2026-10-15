@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Photon Realtime API 5.1.20 (Exit Games), compiled from the SDK's sources unchanged, on top of
+    the SDK's Release PhotonClient.dll (../lib). Third-party code: the repository's analyzer and
+    warning rules do not apply here. See ../README.md.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>PhotonRealtime</AssemblyName>
+    <RootNamespace>Photon.Realtime</RootNamespace>
+    <Version>5.1.20</Version>
+    <Company>Exit Games GmbH</Company>
+    <Product>Photon Realtime Api</Product>
+    <Copyright>(c) Exit Games GmbH, http://www.photonengine.com</Copyright>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Optimize>true</Optimize>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningLevel>0</WarningLevel>
+    <NoWarn>$(NoWarn);CS0168;CS0219;CS0414;CS0618;CS0649;CS1591;CS1570;CS1572;CS1573;CS1574;CS1584;CS1587;CS1658;CS1734</NoWarn>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <AnalysisLevel>none</AnalysisLevel>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="PhotonClient">
+      <HintPath>..\lib\netstandard2.0\PhotonClient.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,61 @@
+# Run: --ui-screen=../match/match --match-mission=2 --match-skip-scenes --session-seed=1
+# What holds the game (the ticks run Paused): the menu, the help, the objective, the build list,
+# the army calls, a question and a hint. The roster does not: the rules see it open instead.
+until match 900
+until play 6000
+expect paused off
+key Escape
+wait 10
+expect popup PauseMenu
+expect paused on
+key Escape
+wait 10
+expect nopopup
+expect paused off
+key H
+wait 5
+expect popup HelpPanel
+expect paused on
+key Escape
+wait 5
+key O
+wait 5
+expect popup ObjectivePanel
+expect paused on
+capture holds-objective.png
+key Escape
+wait 5
+key B
+wait 5
+expect popup BuildMenu
+expect paused on
+key Escape
+wait 5
+key G
+wait 5
+expect popup ArmyMenu
+expect paused on
+key Escape
+wait 5
+key R
+wait 5
+expect popup RosterPanel
+expect roster on
+expect paused off
+key Escape
+wait 5
+expect roster off
+tapbuilding 6
+wait 5
+expect building
+key Delete
+wait 5
+expect paused on
+capture holds-question.png
+key Escape
+wait 5
+expect paused off
+cheat hint 14
+wait 5
+expect popup HintDialog
+expect paused on

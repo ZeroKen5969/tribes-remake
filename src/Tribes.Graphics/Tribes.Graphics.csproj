@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The original game's sprite and animation model (data/client/*.json) and the functions that turn
+    an animation, facing, frame and appearance into the parts to draw. Engine independent: the Godot
+    client, the asset exporter and the tests all use it. Same quality rules as Tribes.Core.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Tribes.Graphics</RootNamespace>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Tribes.Graphics.Tests" />
+  </ItemGroup>
+
+</Project>

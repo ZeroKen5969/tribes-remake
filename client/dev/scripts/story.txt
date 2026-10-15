@@ -1,0 +1,15 @@
+# Run: --ui-screen=../match/match --match-mission=2 --session-seed=1
+# The opening scenes of mission 2: chapter screen and speakers.
+until match 600
+wait 40
+capture story-01.png
+tap 320 200
+wait 30
+capture story-02.png
+tap 320 200
+wait 30
+capture story-03.png
+tap 320 200
+wait 30
+capture story-04.png
+dump

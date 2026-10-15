@@ -1,0 +1,83 @@
+# Run: --ui-screen=../match/match --match-mission=2 --match-skip-scenes --session-seed=1
+# Every order kind through the interface, mission 2 (village with store, armoury, kitchen, huts).
+until match 600
+until play 3000
+# MoveUnits: select one unit, send it to gather from the nearest resource node.
+tapunit 0
+expect units 1
+rnearest node
+ticks 3
+expect applied MoveUnits
+# TendNeed from the unit panel.
+press EatButton
+ticks 3
+expect applied TendNeed
+# Box select, then FetchWeapon at the store (right click on the store opens its menu).
+centre 12 67
+wait 3
+drag 40 60 600 330
+expect units 2
+tapbuilding 6
+key Escape
+tapunit 1
+rclickcell 11 63
+wait 3
+expect popup StorePanel
+capture orders-store.png
+press Fetch0
+ticks 3
+expect applied FetchWeapon
+# SetArmouryOrder and PlaceTrap from the armoury.
+key Escape
+tapbuilding 0
+press More0
+ticks 3
+expect applied SetArmouryOrder
+press Trap6
+expect placing
+ghostfree
+ticks 3
+expect applied PlaceTrap
+# PlaceBuilding: a hut from the build menu.
+key B
+expect popup BuildMenu
+press Build2
+expect placing
+ghostfree
+ticks 3
+expect applied PlaceBuilding
+# OrderBuildingWork: upgrade a hut, then call it off.
+tapbuilding 2
+press UpgradeButton
+ticks 3
+expect applied OrderBuildingWork
+wait 5
+press StopUpgradeButton
+ticks 3
+expect applied OrderBuildingWork 2
+# CallArmy and CancelArmyCall.
+key G
+press RallyButton
+tapcell 14 66
+ticks 3
+expect applied CallArmy
+key G
+press DismissButton
+ticks 3
+expect applied CancelArmyCall
+# ViewedHelp, SetHints.
+key H
+ticks 2
+expect applied ViewedHelp
+key Escape
+press MenuButton
+wait 10
+press SettingsChoice
+wait 3
+press Hints
+ticks 2
+expect applied SetHints
+press Hints
+ticks 2
+key Escape
+dump

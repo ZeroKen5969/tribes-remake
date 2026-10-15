@@ -1,0 +1,34 @@
+# Run: --ui-window=720x1280 --ui-screen=../match/match --match-mission=2 --match-skip-scenes --session-seed=1 --match-touch
+# Touch flows: tap to select, tap to order, hold-and-drag box, multi-select, placing with the tick, store by tapping it.
+until match 600
+until play 3000
+tapunit 3
+expect units 1
+nearest node
+ticks 3
+expect applied MoveUnits
+tapcell 12 66
+ticks 3
+expect applied MoveUnits 2
+press MultiSelectButton
+centre 8 69
+wait 3
+drag 20 150 340 420
+expect units 3
+tapunit 0
+expect units 4
+capture touch-01-multi.png
+press MultiSelectButton
+tapcell 11 63
+wait 3
+expect popup StorePanel
+capture touch-02-store.png
+key Escape
+press BuildButton
+press Build2
+expect placing
+capture touch-03-ghost.png
+ghostfree
+ticks 3
+expect applied PlaceBuilding
+dump

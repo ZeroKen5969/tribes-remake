@@ -1,0 +1,3 @@
+# Keep every file byte for byte as it is in the working tree: shell scripts must stay LF,
+# and tests compare reference data and saves exactly.
+* -text

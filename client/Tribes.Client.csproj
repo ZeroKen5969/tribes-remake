@@ -1,0 +1,34 @@
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+  <!--
+    The game client: shows the world kept by the rules library (Tribes.Core), takes the player's
+    input, and runs single-player, online and endless matches. Game content (data/) is copied into
+    content/ so it is packed with the game.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Tribes.Client</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\Tribes.Core\Tribes.Core.csproj" />
+    <ProjectReference Include="..\src\Tribes.Update\Tribes.Update.csproj" />
+    <ProjectReference Include="..\src\Tribes.Net\Tribes.Net.csproj" />
+    <ProjectReference Include="..\src\Tribes.Net.Photon\Tribes.Net.Photon.csproj" />
+    <ProjectReference Include="..\src\Tribes.Session\Tribes.Session.csproj" />
+    <ProjectReference Include="..\src\Tribes.Graphics\Tribes.Graphics.csproj" />
+  </ItemGroup>
+
+  <!-- The rules content travels inside the game as res://content; the art, music and fonts of the
+       content repository (data/assets) are copied to res://assets. Both copies are never edited. -->
+  <Target Name="CopyGameContent" BeforeTargets="BeforeBuild">
+    <ItemGroup>
+      <GameContentFile Include="..\data\**\*.json" Exclude="..\data\assets\**" />
+      <GameAssetFile Include="..\data\assets\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(GameContentFile)" DestinationFiles="@(GameContentFile->'content\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(GameAssetFile)" DestinationFiles="@(GameAssetFile->'assets\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

@@ -1,0 +1,15 @@
+# Run: --ui-window=1280x720 --ui-screen=../match/match --match-mission=2 --match-skip-scenes --session-seed=1
+# Changes the window size during play: landscape, portrait, ultra-wide, 4:3.
+until match 600
+until play 3000
+tapbuilding 6
+capture resize-1.png
+resize 720x1280
+wait 30
+capture resize-2.png
+resize 2560x1080
+wait 30
+capture resize-3.png
+resize 1024x768
+wait 30
+capture resize-4.png

@@ -1,0 +1,53 @@
+# Run: --ui-screen=../match/match --match-mission=2 --match-skip-scenes --session-seed=1
+# Opens every panel of the match screen and captures it.
+until match 600
+until play 3000
+wait 20
+capture tour-01-start.png
+tapunit 0
+wait 5
+capture tour-02-unit.png
+drag 200 150 900 650
+wait 5
+capture tour-03-group.png
+tapbuilding 0
+wait 5
+capture tour-04-armoury.png
+tapbuilding 6
+wait 5
+capture tour-05-store.png
+tapbuilding 2
+wait 5
+capture tour-06-hut.png
+key Escape
+press BuildButton
+wait 5
+capture tour-07-build.png
+press Build2
+wait 5
+capture tour-08-ghost.png
+key Escape
+press ArmyButton
+wait 5
+capture tour-09-army.png
+key Escape
+press RosterButton
+wait 5
+capture tour-10-roster.png
+key Escape
+press HelpButton
+wait 5
+capture tour-11-help.png
+key Escape
+press ObjectiveButton
+wait 5
+capture tour-12-objective.png
+key Escape
+press MenuButton
+wait 10
+capture tour-13-menu.png
+press SaveChoice
+wait 5
+capture tour-14-save.png
+key Escape
+dump

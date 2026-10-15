@@ -1,0 +1,50 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="史前部落 Prehistoric Tribes"
+config/name_localized={
+"zh": "史前部落",
+"zh_HK": "史前部落",
+"zh_TW": "史前部落"
+}
+config/version="1.0.5"
+run/main_scene="res://scenes/ui/boot.tscn"
+config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
+
+[autoload]
+
+App="*res://src/App/GameApp.cs"
+Music="*res://src/Audio/MusicPlayer.cs"
+PlatformCheck="*res://src/Platform/Dev/PlatformCheck.cs"
+MatchScript="*res://src/Match/Dev/MatchScript.cs"
+
+[display]
+
+window/size/viewport_width=640
+window/size/viewport_height=360
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/stretch/scale_mode="integer"
+window/handheld/orientation=6
+
+[dotnet]
+
+project/assembly_name="Tribes.Client"
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true

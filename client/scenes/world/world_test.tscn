@@ -1,0 +1,28 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/World/Dev/WorldTest.cs" id="1"]
+[ext_resource type="Script" path="res://src/World/WorldView.cs" id="2"]
+[ext_resource type="Script" path="res://src/Map/MapCamera.cs" id="3"]
+[ext_resource type="Script" path="res://src/Input/PointerGestures.cs" id="4"]
+
+[node name="WorldTest" type="Node2D"]
+texture_filter = 1
+script = ExtResource("1")
+
+[node name="World" type="Node2D" parent="."]
+script = ExtResource("2")
+
+[node name="Camera" type="Camera2D" parent="."]
+script = ExtResource("3")
+
+[node name="Gestures" type="Node" parent="."]
+script = ExtResource("4")
+
+[node name="Hud" type="CanvasLayer" parent="."]
+
+[node name="Status" type="Label" parent="Hud"]
+offset_left = 4.0
+offset_top = 2.0
+offset_right = 400.0
+offset_bottom = 20.0
+text = "..."

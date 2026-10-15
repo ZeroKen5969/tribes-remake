@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tests of the menus' engine-independent logic (client/src/Ui/Logic): which rooms the LAN list
+    shows and what a player can do in each, the campaign list's chapters, and which save pictures
+    the load screen shows and how big; and the folder the game content is read from
+    (client/src/App/ExtractedContent.cs).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Tribes.Net\Tribes.Net.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\client\src\Ui\Logic\**\*.cs" Link="Logic\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\..\client\src\App\ExtractedContent.cs" Link="App\ExtractedContent.cs" />
+  </ItemGroup>
+
+</Project>

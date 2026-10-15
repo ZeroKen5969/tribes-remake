@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Matches on top of the rules (Tribes.Core) and the network layer (Tribes.Net): the lockstep
+    simulation adapter, the player table, host saves and resume, and the runners the client
+    drives every frame. No engine dependency. Quality rules match Tribes.Core: nullable
+    references, the recommended analyzers, code style, and warnings as errors.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Tribes.Session</RootNamespace>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Tribes.Session.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tribes.Core\Tribes.Core.csproj" />
+    <ProjectReference Include="..\Tribes.Net\Tribes.Net.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,25 @@
+# Run: --ui-screen=../match/match --match-mission=6 --match-exact-mission --match-skip-scenes --session-seed=1
+# The campaign's end: winning its last mission (the fifth chapter's second part) shows the result
+# with only 「繼續」; then the closing story plays in the same world on the chapter screen under the
+# title 「劇終」; then the campaign list shows every chapter won.
+until match 900
+until play 6000
+expect tribe 0
+skipscenes off
+cheat win
+until results 3000
+capture ending-01-results.png
+expect control EndingButton
+expect nocontrol NextButton
+press EndingButton
+until scene 600
+expect dialogue 59
+expect control ChapterTitle
+wait 10
+capture ending-02-story.png
+key Enter
+until campaignlist 900
+expect completed 5
+expect completed 6
+wait 10
+capture ending-03-campaign.png

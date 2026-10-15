@@ -1,0 +1,11 @@
+# Run: --ui-screen=../match/match --match-mission=3 --match-skip-scenes --session-seed=1
+# The war mission has no overview map (as in the original): the minimap is not shown and its key
+# shows hint 20, which holds the game like any hint.
+until match 900
+until play 6000
+expect minimap off
+key M
+wait 5
+expect popup HintDialog
+expect paused on
+capture overview-hint.png
