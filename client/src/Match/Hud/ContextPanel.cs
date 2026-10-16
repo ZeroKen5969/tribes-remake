@@ -13,8 +13,9 @@ namespace Tribes.Client.MatchPlay.Hud;
 /// hidden when nothing is selected. Beside the card stand its buttons: a cross that lets go of the
 /// selection (on touch screens a tap on open ground sends the selected villagers there, so this is
 /// the way to deselect on screen), one that folds the panel into a small tab (face and name) and
-/// opens it again, and on a villager's card one that shows or hides the skills. Folding and the
-/// skills are remembered in the settings.
+/// opens it again, and on a villager's card one that shows or hides the skills. Folding is
+/// remembered in the settings; the skills start each match as the settings say and the button
+/// changes them for this match only.
 /// </summary>
 public partial class ContextPanel : PanelContainer
 {
@@ -33,6 +34,9 @@ public partial class ContextPanel : PanelContainer
     private int buttonSize;
     private Control? card;
     private int shownSignature = int.MinValue;
+
+    /// <summary>Whether a villager's card shows the skills in this match (it starts as the settings say).</summary>
+    private bool detailed;
 
     /// <summary>A panel for the match <paramref name="actions"/> plays.</summary>
     public ContextPanel(IMatchActions actions)
@@ -100,6 +104,7 @@ public partial class ContextPanel : PanelContainer
         Name = "ContextPanel";
         ThemeTypeVariation = PixelTheme.Variations.Sheet;
         MouseFilter = MouseFilterEnum.Stop;
+        detailed = Settings.UnitCardDetailed;
         holder = HudPanels.Column(2);
         // A card taller than the room it gets scrolls instead of running off the screen; the
         // buttons stay beside it, so they never scroll away or cover the card.
@@ -178,10 +183,8 @@ public partial class ContextPanel : PanelContainer
         side.AddThemeConstantOverride("separation", m.Gap);
         deselect = HudWidgets.IconButton(m, HudArt.Painted(PaintedIcon.Close), "hud.deselect",
             () => actions.Selection.Clear(), name: "DeselectButton");
-        fold = HudWidgets.IconButton(m, HudArt.Painted(PaintedIcon.Minus), "hud.panel.fold",
-            () => Toggle(s => s.SelectionPanelFolded = !s.SelectionPanelFolded), name: "FoldButton");
-        details = HudWidgets.IconButton(m, HudArt.Inline(SkillsIcon), "hud.panel.details",
-            () => Toggle(s => s.UnitCardDetailed = !s.UnitCardDetailed), name: "DetailsButton");
+        fold = HudWidgets.IconButton(m, HudArt.Painted(PaintedIcon.Minus), "hud.panel.fold", ToggleFolded, name: "FoldButton");
+        details = HudWidgets.IconButton(m, HudArt.Inline(SkillsIcon), "hud.panel.details", ToggleDetailed, name: "DetailsButton");
         details.ToggleMode = true;
         side.AddChild(deselect);
         side.AddChild(fold);
@@ -200,13 +203,21 @@ public partial class ContextPanel : PanelContainer
         fold!.Icon = HudWidgets.Enlarge(HudArt.Painted(folded ? PaintedIcon.Plus : PaintedIcon.Minus), actions.Metrics.IconScale);
         fold.TooltipText = folded ? "hud.panel.unfold" : "hud.panel.fold";
         details!.Visible = !folded && ShowsOneVillager(selection);
-        details.SetPressedNoSignal(Settings.UnitCardDetailed);
+        details.SetPressedNoSignal(detailed);
     }
 
-    private void Toggle(Action<GameSettings> change)
+    /// <summary>Folds or opens the panel, remembered in the settings.</summary>
+    private void ToggleFolded()
     {
-        change(Settings);
+        Settings.SelectionPanelFolded = !Settings.SelectionPanelFolded;
         Settings.Save();
+        Refresh(force: true);
+    }
+
+    /// <summary>Shows or hides a villager's skills for the rest of this match (the settings keep the default).</summary>
+    private void ToggleDetailed()
+    {
+        detailed = !detailed;
         Refresh(force: true);
     }
 
@@ -225,7 +236,7 @@ public partial class ContextPanel : PanelContainer
         hash.Add(actions.Metrics.Button);
         hash.Add(Tribes.Client.Ui.Text.UiText.Current);
         hash.Add(Settings.SelectionPanelFolded);
-        hash.Add(Settings.UnitCardDetailed);
+        hash.Add(detailed);
         switch (selection.Kind)
         {
             case SelectionKind.Units when selection.Units.Count == 1:
@@ -259,7 +270,6 @@ public partial class ContextPanel : PanelContainer
     private Control? BuildCard(UnitSelection selection)
     {
         GameWorld world = actions.World;
-        bool detailed = Settings.UnitCardDetailed;
         return selection.Kind switch
         {
             SelectionKind.Units when selection.Units.Count == 1 => UnitCard.Build(actions, world.Unit(selection.Units[0]), own: true, detailed),

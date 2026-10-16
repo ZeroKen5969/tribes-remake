@@ -38,7 +38,7 @@ public sealed class GameSettings
     /// <summary>On PC: whether the game fills the screen (borderless, the desktop's resolution) instead of a window.</summary>
     public bool Fullscreen { get; set; }
 
-    /// <summary>Whether a villager's panel opens with the details (skills); the panel's details button changes it too.</summary>
+    /// <summary>Whether a villager's panel shows the details (skills) at the start of each match; the panel's button changes them for that match only.</summary>
     public bool UnitCardDetailed { get; set; }
 
     /// <summary>Whether the selection panel is folded into a small tab (face and name) until the player opens it.</summary>
