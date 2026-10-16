@@ -7,14 +7,17 @@ using Tribes.Client.Ui.Art;
 namespace Tribes.Client.MatchPlay.Hud;
 
 /// <summary>
-/// The strip under the top bar: how many villagers gather food, wood, stones and bones, and how
-/// many grown-ups are idle (<see cref="Workforce"/>). Pressing a count goes to the next villager
+/// The strip under the top bar: how many villagers gather food, wood, stones and bones, how many
+/// build, and how many grown-ups are idle (<see cref="Workforce"/>). Pressing a count goes to the next villager
 /// of that group in turn.
 /// </summary>
 public partial class WorkforceBar : PanelContainer
 {
     /// <summary>A middle mood, whose plain face is the idle count's picture.</summary>
     private const int IdleFaceMood = 50;
+
+    /// <summary>The building skill's icon, the builders' count's picture.</summary>
+    private const int BuildingSkillIcon = 12;
 
     private readonly IMatchActions actions;
     private readonly Button[] counts = new Button[Workforce.Groups];
@@ -41,7 +44,7 @@ public partial class WorkforceBar : PanelContainer
         Texture2D[] icons =
         {
             HudArt.Piece(HudArt.FoodPiece), HudArt.Piece(HudArt.WoodPiece), HudArt.Piece(HudArt.StonesPiece),
-            HudArt.Piece(HudArt.BonesPiece), HudArt.Mood(IdleFaceMood),
+            HudArt.Piece(HudArt.BonesPiece), HudArt.Inline(BuildingSkillIcon), HudArt.Mood(IdleFaceMood),
         };
         for (int g = 0; g < Workforce.Groups; g++)
         {

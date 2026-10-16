@@ -7,8 +7,8 @@ using Xunit;
 namespace Tribes.Client.MatchPlay.Tests;
 
 /// <summary>
-/// The top bar's head counts (<see cref="Workforce"/>): villagers by what they gather and the idle
-/// grown-ups, outside the buildings, and the jump through one group in turn.
+/// The top bar's head counts (<see cref="Workforce"/>): villagers by what they gather, the builders
+/// and the idle grown-ups, outside the buildings, and the jump through one group in turn.
 /// </summary>
 public sealed class WorkforceTests
 {
@@ -53,6 +53,26 @@ public sealed class WorkforceTests
         Assert.Null(Workforce.GroupOf(soldier));
         Assert.Contains(idle.Id, Workforce.Members(world, 0, WorkGroup.Idle));
         Assert.DoesNotContain(child.Id, Workforce.Members(world, 0, WorkGroup.Idle));
+    }
+
+    [Fact]
+    public void Builders_are_the_villagers_on_a_construction_task()
+    {
+        GameWorld world = Repo.Instance.Started(2).World;
+        int[] outside = OutsideAdults(world);
+        Tribes.Core.Content.Rules.ActionTables rules = world.Content.Rules.Actions;
+        // Every long-term task of the actions the rules send as builders (service group 2).
+        int[] construction = rules.Actions.Where(a => rules.Categories[a.Category].ServiceGroup == 2)
+            .Select(a => a.StandingTask).Distinct().ToArray();
+        Assert.NotEmpty(construction);
+        Unit builder = world.Unit(outside[0]);
+        foreach (int task in construction)
+        {
+            builder.AssignedTask = task;
+            Assert.Equal(WorkGroup.Builders, Workforce.GroupOf(builder));
+        }
+        Assert.Contains(builder.Id, Workforce.Members(world, 0, WorkGroup.Builders));
+        Assert.Equal(Workforce.Members(world, 0, WorkGroup.Builders).Count, Workforce.Counts(world, 0)[(int)WorkGroup.Builders]);
     }
 
     [Fact]

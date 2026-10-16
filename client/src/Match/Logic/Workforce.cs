@@ -19,6 +19,9 @@ public enum WorkGroup
     /// <summary>Gathering bones.</summary>
     Bones,
 
+    /// <summary>Builders: building a site, upgrading or repairing, or waiting to be sent to one.</summary>
+    Builders,
+
     /// <summary>Grown-ups with no task (and not called to arms).</summary>
     Idle,
 }
@@ -31,12 +34,17 @@ public enum WorkGroup
 public static class Workforce
 {
     /// <summary>Number of <see cref="WorkGroup"/> values.</summary>
-    public const int Groups = 5;
+    public const int Groups = 6;
 
     // Long-term tasks (action numbers): the gathering actions 10..16 (one per carried item; 2
     // wood, 3 stones, 4 bones, the rest food), the hunting task, and the idle task.
     private const int GatherFood = 10, GatherWood = 11, GatherMeat = 12, Fishing = 13, GatherStones = 14,
         GatherPlants = 15, GatherBones = 16, HuntingTask = 60, IdleTask = 69;
+
+    // The long-term tasks of the construction work (the standing tasks of the actions whose
+    // service group is construction, the ones the rules send as builders): building, upgrade or
+    // repair work, sent to a site, waiting for material.
+    private const int BuildTask = 56, UpgradeTask = 76, SentBuilderTask = 77, WaitForMaterialTask = 78;
 
     /// <summary>The group <paramref name="unit"/> belongs to, or null when it does something else or is a child.</summary>
     public static WorkGroup? GroupOf(Unit unit)
@@ -48,6 +56,7 @@ public static class Workforce
             GatherWood => WorkGroup.Wood,
             GatherStones => WorkGroup.Stones,
             GatherBones => WorkGroup.Bones,
+            BuildTask or UpgradeTask or SentBuilderTask or WaitForMaterialTask => WorkGroup.Builders,
             IdleTask when unit.Age >= RuleNumbers.AdultAge && (unit.Status & UnitStatus.Mustered) == 0 => WorkGroup.Idle,
             _ => null,
         };
