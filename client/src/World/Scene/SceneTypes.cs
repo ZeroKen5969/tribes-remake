@@ -116,8 +116,15 @@ public sealed record WorldMarks
     /// <summary>The player's units inside a selection rectangle being dragged.</summary>
     public IReadOnlySet<int> BoxedUnits { get; init; } = new HashSet<int>();
 
-    /// <summary>The map cell under the cursor (its unit or building shows its health bar), or null.</summary>
+    /// <summary>The map cell under the original's cursor (its unit or building shows its health bar), or null.</summary>
     public (int X, int Y)? CursorCell { get; init; }
+
+    /// <summary>
+    /// Buildings drawn as if the original's cursor were on them (health bar, place squares, the
+    /// marks of the villagers working inside): in a match the selected building and, with a mouse,
+    /// the one under the pointer.
+    /// </summary>
+    public IReadOnlySet<int> PointedBuildings { get; init; } = new HashSet<int>();
 
     /// <summary>When the task icons of the player's units are drawn: 0 always, 1 for marked units, 2 never.</summary>
     public int TaskIconMode { get; init; } = 2;

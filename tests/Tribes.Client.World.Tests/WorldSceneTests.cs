@@ -169,6 +169,44 @@ public sealed class WorldSceneTests
         FrameCheck.DrawScreen(world, view, repo.Assets, repo.Sheet);
         Assert.Equal(before, WorldSnapshot.Hash(world));
     }
+
+    [Fact]
+    public void APointedBuildingShowsWhatTheOriginalShowsUnderItsCursor()
+    {
+        // A match has no cursor: it passes the selected building (and, with a mouse, the one pointed
+        // at) as pointed, and that building gets its place squares as under the original's cursor.
+        Repo repo = Repo.Instance;
+        RgbColor used = RgbColor.Parse("#f6a800"), free = RgbColor.Parse("#40331d");
+        int Squares(GameWorld world, SnapshotView view, IReadOnlySet<int> pointed)
+        {
+            var list = new SceneList();
+            WorldMarks marks = view.Marks with { CursorCell = null, PointedBuildings = pointed };
+            new ObjectLayer(repo.Assets).Compose(new SceneRequest(world, view.View, view.Presentation(), marks,
+                new TribeLooks(0, world.Layout.Tribes), true), list);
+            return list.Items.Count(i => i.Part.Kind == DrawPartKind.Fill && (i.Part.Color == used || i.Part.Color == free));
+        }
+
+        int checkedBuildings = 0;
+        foreach (string snapshot in repo.Snapshots())
+        {
+            (GameWorld world, SnapshotView view) = repo.Load(snapshot);
+            ViewRect seen = view.View;
+            // The player's buildings on screen that have places (the store has none).
+            foreach (int id in Enumerable.Range(1, world.BuildingSlots))
+            {
+                Building b = world.Building(id);
+                if (b.Tribe != 0 || b.HitPoints <= 0 || b.Kind > 11 || b.Kind == 6
+                    || b.X < seen.Column || b.X >= seen.Column + seen.Columns || b.Y < seen.Row || b.Y >= seen.Row + seen.Rows)
+                {
+                    continue;
+                }
+                Assert.True(Squares(world, view, new HashSet<int> { id }) > 0, $"{snapshot}: building {id} (kind {b.Kind}) pointed at shows no place squares");
+                checkedBuildings++;
+            }
+            Assert.Equal(0, Squares(world, view, new HashSet<int>()));
+        }
+        Assert.True(checkedBuildings > 0, "no snapshot shows one of the player's buildings");
+    }
 }
 
 /// <summary>Tribe colours and the skin recolouring.</summary>

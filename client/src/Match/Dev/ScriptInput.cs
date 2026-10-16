@@ -29,6 +29,13 @@ public static class ScriptInput
         Godot.Input.ParseInputEvent(new InputEventMouseButton { Position = p, GlobalPosition = p, ButtonIndex = MouseButton.Left, Pressed = false });
     }
 
+    /// <summary>The mouse pointer moved to logical point <paramref name="at"/> (no button).</summary>
+    public static void Hover(Node context, Vector2 at)
+    {
+        Vector2 p = ToWindow(context, at);
+        Godot.Input.ParseInputEvent(new InputEventMouseMotion { Position = p, GlobalPosition = p });
+    }
+
     /// <summary>A right click at logical point <paramref name="at"/>.</summary>
     public static void RightClick(Node context, System.Numerics.Vector2 at) => RightClick(context, new Vector2(at.X, at.Y));
 

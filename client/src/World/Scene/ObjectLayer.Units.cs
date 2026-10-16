@@ -178,7 +178,8 @@ public sealed partial class ObjectLayer
     {
         WorldMarks marks = request.Marks;
         bool focused = marks.FocusedUnits.Contains(id) || id == marks.HoveredUnit || CellCode.OfUnit(id) == cursorCode
-            || (occupant && cursorCode != int.MinValue && CellCode.BuildingOf(cursorCode) is > 0 and int building && building == unit.TargetIndex);
+            || (occupant && cursorCode != int.MinValue && CellCode.BuildingOf(cursorCode) is > 0 and int building && building == unit.TargetIndex)
+            || (occupant && marks.PointedBuildings.Contains(unit.TargetIndex));
         if (marks.TaskIconMode == 0 || (marks.TaskIconMode == 1 && focused))
         {
             AddSprite(FirstTaskIcon + (marks.TaskIcons.TryGetValue(id, out int icon) ? icon : 0), headX, headY, -1, mover, moverId);

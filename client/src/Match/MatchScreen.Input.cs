@@ -24,6 +24,9 @@ public partial class MatchScreen
     private Vector2? hover;
     private int hoveredUnit;
 
+    /// <summary>The building under the mouse pointer (shown as under the original's cursor), or 0.</summary>
+    private int hoveredBuilding;
+
     private void WireGestures()
     {
         gestures.Panned += delta =>
@@ -359,11 +362,13 @@ public partial class MatchScreen
         Vector2 point = rig.ScreenToMap(screen);
         if (placing is not null || pickingPoint is not null || aimingSpell is not null)
         {
+            hoveredBuilding = 0;
             HoverInMode(point);
             return;
         }
         MapPick pick = PickAt(point);
         hoveredUnit = pick.IsCreature && pick.Kind != PickKind.Animal ? pick.Id : 0;
+        hoveredBuilding = !metrics.Touch && pick.Kind is PickKind.OwnBuilding or PickKind.OtherBuilding ? pick.Id : 0;
         ShowPointer(pick);
     }
 
@@ -523,7 +528,7 @@ public partial class MatchScreen
         {
             boxedHash += HashCode.Combine(unit);
         }
-        int hash = HashCode.Combine(selection.Version, hoveredUnit, boxedHash, World.Frame);
+        int hash = HashCode.Combine(selection.Version, hoveredUnit, hoveredBuilding, boxedHash, World.Frame);
         if (hash == shownSelectionVersion)
         {
             return;
@@ -544,10 +549,14 @@ public partial class MatchScreen
             TaskIconMode = 1,
             TaskIcons = icons,
             PointedUnit = selection.Units.Count == 1 ? selection.Units[0] : 0,
+            // What the original shows for the building under its cursor: the selected one, and with a mouse the one pointed at.
+            PointedBuildings = BuildingFrame.Pointed(selection, metrics.Touch ? 0 : hoveredBuilding),
         };
-        // The player's selected building, or another tribe's being looked at.
+        // The player's selected building, or another tribe's being looked at; with a mouse also the one pointed at.
         int marked = BuildingFrame.MarkedBuilding(selection);
         overlay.MarkedBuilding = marked > 0 && marked <= World.BuildingSlots ? Footprint(World.Building(marked)) : null;
+        int hovered = metrics.Touch ? 0 : hoveredBuilding;
+        overlay.HoveredBuilding = hovered > 0 && hovered != marked && hovered <= World.BuildingSlots ? Footprint(World.Building(hovered)) : null;
     }
 
     /// <summary>The task class (0..16) of a unit's long-term task, which picks its task icon.</summary>

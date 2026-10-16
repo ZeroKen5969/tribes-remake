@@ -335,6 +335,7 @@ Godot 4.7.2 .NET 用戶端在 `client/`。本文件說明選單、設定與它�
 | `tapcell X Y`、`dtapcell X Y`、`rclickcell X Y` | 對地圖格 |
 | `tapmap PX PY`、`rclickmap PX PY` | 對地圖像素（先把它移到畫面上；點建築畫在佔地上方的部分等） |
 | `tapunit N`、`tapbuilding 種類 [部落]`（-1 工地）、`tapevictable` | 點第 N 個在外面的村民、自己（或那個部落）的某種建築、有人可以趕出來的建築 |
+| `hoverbuilding 種類 [部落]` | 滑鼠移到那種建築上（不按鍵） |
 | `nearest node｜animal｜enemy｜ground`、`rnearest …` | 點（右鍵）離選取最近的東西 |
 | `ghostfree` | 把藍圖放到最近的空地並放下 |
 | `press 名稱｜text:鍵｜prefix:開頭` | 點介面元件（依節點名稱、按鈕文字鍵或名稱開頭），在捲動清單裡會先捲到看得到 |
@@ -373,6 +374,17 @@ Godot 4.7.2 .NET 用戶端在 `client/`。本文件說明選單、設定與它�
 
 游標、拉框、建築四角標記、面板、上方列等介面不在視圖裡，由 HUD 畫。原版與選取有關、畫在單位身上的標記（隊伍標記、游標下的陰影、選取單位的生命條與任務圖示、建築的進駐方塊）由 `WorldMarks` 傳入。
 
+對局沒有原版的地圖游標（`CursorCell` 只在重現原版畫面的開發工具裡設定），原版畫給「游標格上的東西」的標記改由選取與滑鼠決定：用滑鼠時是選取的或指著的，觸控時是選取的。
+
+| 原版（`GameCanvas.java`） | 原版的條件 | 對局 |
+|---|---|---|
+| 村民的任務圖示與生命條（1615–1640） | 選取的、同隊的、游標旁最近的、游標格上的 | `FocusedUnits`（選取）、`HoveredUnit`（滑鼠指著） |
+| 建築裡工作的村民的任務圖示與生命條（1622、1635） | 游標指著那棟建築 | `PointedBuildings` |
+| 建築的生命條與進駐方塊（2228–2268） | 游標指著（生命條另外在耐久低於一半、升級或修理中、工地時顯示） | `PointedBuildings`：選取的建築，滑鼠時加上指著的（`BuildingFrame.Pointed`） |
+| 建築四角標記（2425–2435） | 游標指著 | HUD：選取的建築，滑鼠時加上指著的（`WorldOverlay.MarkedBuilding`、`HoveredBuilding`） |
+| 拉框（`w_`） | 從游標拉 | 拖曳拉框（`BoxedUnits`） |
+| 對游標格下令、放建築的位置（4245、4375–4469、7897） | 游標格 | 點目標、藍圖跟著手指或滑鼠 |
+
 ### 使用方式
 
 ```csharp
@@ -381,7 +393,7 @@ view.Show(world, Viewpoint.Spectator(0)); // 觀戰者：所有真人部落的�
 view.SetViewpoint(Viewpoint.Player(3));   // 換觀看者，不重設畫面狀態、顏色與地形
 IFogView fog = view.Sight!;               // 觀看者看得到什麼（小地圖、點選用）
 view.OnRuleFrame(systems.TakeEvents());   // 每個規則幀之後，帶這一幀的事件
-view.Marks = new WorldMarks { SelectedUnits = selected, FocusedUnits = selected, HoveredUnit = hovered, CursorCell = (x, y) };
+view.Marks = new WorldMarks { SelectedUnits = selected, FocusedUnits = selected, HoveredUnit = hovered, PointedBuildings = pointed };
 view.SetTribeColour(tribe, colour);       // false：別的部落已經用這個顏色
 view.SetTribeColours(new[] { 3, 0 });     // 一次設定所有部落（可互換顏色）；有重複就不變
 view.SmoothMotion = true;                 // 規則幀之間平滑移動

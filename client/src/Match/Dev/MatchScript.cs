@@ -240,6 +240,9 @@ public partial class MatchScript : Node
             case "tapbuilding":
                 ScriptInput.Tap(this, BuildingOnScreen(Need(screen), line.Int(0), line.Args.Count > 1 ? line.Int(1) : -1), Touch(screen));
                 break;
+            case "hoverbuilding":
+                ScriptInput.Hover(this, BuildingOnScreen(Need(screen), line.Int(0), line.Args.Count > 1 ? line.Int(1) : -1));
+                break;
             case "tapevictable":
                 ScriptInput.Tap(this, EvictableOnScreen(Need(screen)), Touch(screen));
                 break;
@@ -483,10 +486,11 @@ public partial class MatchScript : Node
     private ScriptLine? centring;
 
     private static bool IsInput(string command) => command is "tap" or "dtap" or "rclick" or "drag" or "tapcell" or "rclickcell"
-        or "dtapcell" or "tapmap" or "rclickmap" or "tapunit" or "tapbuilding" or "tapevictable" or "press" or "key" or "nearest" or "rnearest" or "ghostfree";
+        or "dtapcell" or "tapmap" or "rclickmap" or "tapunit" or "tapbuilding" or "hoverbuilding" or "tapevictable" or "press" or "key"
+        or "nearest" or "rnearest" or "ghostfree";
 
-    private static bool MovesCamera(string command) => command is "tapunit" or "tapbuilding" or "nearest" or "rnearest" or "ghostfree"
-        or "tapcell" or "rclickcell" or "dtapcell" or "tapevictable" or "tapmap" or "rclickmap";
+    private static bool MovesCamera(string command) => command is "tapunit" or "tapbuilding" or "hoverbuilding" or "nearest" or "rnearest"
+        or "ghostfree" or "tapcell" or "rclickcell" or "dtapcell" or "tapevictable" or "tapmap" or "rclickmap";
 
     private static void AimOnly(MatchScreen screen, ScriptLine line)
     {
@@ -496,6 +500,7 @@ public partial class MatchScript : Node
                 UnitOnScreen(screen, line.Int(0));
                 break;
             case "tapbuilding":
+            case "hoverbuilding":
                 BuildingOnScreen(screen, line.Int(0), line.Args.Count > 1 ? line.Int(1) : -1);
                 break;
             case "tapevictable":

@@ -170,11 +170,27 @@ public partial class WorldOverlay : Node2D
             feedbackEnded = feedback is null;
         }
         // One more picture after the order feedback ends, so its last frame does not stay on screen.
-        if (Mode != OverlayMode.None || feedback is not null || feedbackEnded || MarkedBuilding is not null || pointer is not null)
+        if (Mode != OverlayMode.None || feedback is not null || feedbackEnded || MarkedBuilding is not null || HoveredBuilding is not null || pointer is not null)
         {
             QueueRedraw();
         }
     }
+
+    /// <summary>The building under the mouse pointer, framed as the original frames the one under its cursor; null for none.</summary>
+    public Rect2I? HoveredBuilding
+    {
+        get => hoveredBuilding;
+        set
+        {
+            if (value != hoveredBuilding)
+            {
+                hoveredBuilding = value;
+                QueueRedraw();
+            }
+        }
+    }
+
+    private Rect2I? hoveredBuilding;
 
     /// <inheritdoc/>
     public override void _Draw()
@@ -183,6 +199,10 @@ public partial class WorldOverlay : Node2D
         if (MarkedBuilding is { } b)
         {
             DrawCorners(art, b);
+        }
+        if (HoveredBuilding is { } h)
+        {
+            DrawCorners(art, h);
         }
         switch (Mode)
         {

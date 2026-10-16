@@ -41,6 +41,27 @@ public sealed class BuildingFrameTests
     }
 
     [Fact]
+    public void ThePointedBuildings_AreTheSelectedOne_AndTheOneUnderTheMouse()
+    {
+        // What the original shows for the building under its cursor (health bar, place squares):
+        // on a PC the selected building and the one pointed at, on a touch screen (no pointer) the selected one.
+        var selection = new UnitSelection();
+        Assert.Empty(BuildingFrame.Pointed(selection, 0));
+        Assert.Equal(new[] { 9 }, BuildingFrame.Pointed(selection, 9));
+
+        selection.SelectBuilding(7);
+        Assert.Equal(new[] { 7 }, BuildingFrame.Pointed(selection, 0));
+        Assert.Equal(new[] { 7, 9 }, BuildingFrame.Pointed(selection, 9).Order());
+        Assert.Equal(new[] { 7 }, BuildingFrame.Pointed(selection, 7));
+
+        selection.ShowOther(Tribes.Core.Maps.CellCode.OfBuilding(45));
+        Assert.Equal(new[] { 45 }, BuildingFrame.Pointed(selection, 0));
+
+        selection.SetUnits(new[] { 2 });
+        Assert.Empty(BuildingFrame.Pointed(selection, 0));
+    }
+
+    [Fact]
     public void TheMarks_FrameEveryBuildingKind_AtEveryFrameOfTheirAnimation()
     {
         Repo repo = Repo.Instance;

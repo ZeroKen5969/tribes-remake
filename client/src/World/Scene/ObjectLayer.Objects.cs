@@ -207,7 +207,7 @@ public sealed partial class ObjectLayer
         }
         int hp = building.HitPoints;
         int max = building.MaxHitPoints;
-        bool cursorOn = code == cursorCode;
+        bool cursorOn = code == cursorCode || request.Marks.PointedBuildings.Contains(slot);
         bool shown = hall
             ? hp > 0 && max > 0 && (cursorOn || max / 2 > hp || busy)
             : (hp > 0 && (cursorOn || max / 2 > hp)) || busy || kind >= FirstSiteKind;

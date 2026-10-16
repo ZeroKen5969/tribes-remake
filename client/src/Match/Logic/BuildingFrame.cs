@@ -31,6 +31,28 @@ public static class BuildingFrame
     }
 
     /// <summary>
+    /// The buildings shown as the original shows the one under its cursor (health bar, place
+    /// squares, the marks of the villagers working inside, corner marks): the one
+    /// <paramref name="selection"/> frames and the one under the mouse pointer,
+    /// <paramref name="hovered"/> (0 for none; touch screens have no pointer, so there only the
+    /// selection counts).
+    /// </summary>
+    public static System.Collections.Generic.IReadOnlySet<int> Pointed(UnitSelection selection, int hovered)
+    {
+        System.ArgumentNullException.ThrowIfNull(selection);
+        var pointed = new System.Collections.Generic.HashSet<int>();
+        if (MarkedBuilding(selection) is > 0 and int marked)
+        {
+            pointed.Add(marked);
+        }
+        if (hovered > 0)
+        {
+            pointed.Add(hovered);
+        }
+        return pointed;
+    }
+
+    /// <summary>
     /// The anchors of the top-left, top-right, bottom-left and bottom-right marks of a footprint of
     /// <paramref name="width"/> by <paramref name="height"/> cells from cell (<paramref name="x"/>,
     /// <paramref name="y"/>), with cells of <paramref name="cellWidth"/> by <paramref name="cellHeight"/> pixels.
