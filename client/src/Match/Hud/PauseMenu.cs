@@ -218,6 +218,14 @@ public partial class MatchSettingsPanel : HudPopup
         });
         scale.Name = "InterfaceScale";
         Content.AddChild(UiFactory.Row("settings.scale", scale));
+        OptionButton taskIcons = UiFactory.Options(["settings.task_icons.0", "settings.task_icons.1", "settings.task_icons.2"],
+            Math.Clamp(settings.TaskIcons, 0, 2), index =>
+            {
+                settings.TaskIcons = index;
+                settings.Save();
+            });
+        taskIcons.Name = "TaskIcons";
+        Content.AddChild(UiFactory.Row("settings.task_icons", taskIcons));
         if (GameApp.CanFullscreen)
         {
             GameApp app = GameApp.Instance;

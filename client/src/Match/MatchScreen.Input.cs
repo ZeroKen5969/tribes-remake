@@ -528,7 +528,8 @@ public partial class MatchScreen
         {
             boxedHash += HashCode.Combine(unit);
         }
-        int hash = HashCode.Combine(selection.Version, hoveredUnit, hoveredBuilding, boxedHash, World.Frame);
+        int taskIcons = Math.Clamp(Tribes.Client.App.GameApp.Instance.Settings.TaskIcons, 0, 2);
+        int hash = HashCode.Combine(selection.Version, hoveredUnit, hoveredBuilding, boxedHash, World.Frame, taskIcons);
         if (hash == shownSelectionVersion)
         {
             return;
@@ -546,7 +547,7 @@ public partial class MatchScreen
             FocusedUnits = selected,
             HoveredUnit = hoveredUnit,
             BoxedUnits = boxed,
-            TaskIconMode = 1,
+            TaskIconMode = taskIcons,
             TaskIcons = icons,
             PointedUnit = selection.Units.Count == 1 ? selection.Units[0] : 0,
             // What the original shows for the building under its cursor: the selected one, and with a mouse the one pointed at.

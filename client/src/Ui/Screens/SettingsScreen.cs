@@ -70,6 +70,13 @@ public partial class SettingsScreen : ScreenBase
         }
         rows.AddChild(Toggle("settings.show_players", settings.ShowPlayers, on => settings.ShowPlayers = on));
         rows.AddChild(Toggle("settings.unit_card_detailed", settings.UnitCardDetailed, on => settings.UnitCardDetailed = on));
+        OptionButton taskIcons = UiFactory.Options(["settings.task_icons.0", "settings.task_icons.1", "settings.task_icons.2"],
+            Math.Clamp(settings.TaskIcons, 0, 2), index =>
+            {
+                settings.TaskIcons = index;
+                Save();
+            });
+        rows.AddChild(UiFactory.Row("settings.task_icons", taskIcons));
 
         var name = new LineEdit
         {

@@ -44,6 +44,12 @@ public sealed class GameSettings
     /// <summary>Whether the selection panel is folded into a small tab (face and name) until the player opens it.</summary>
     public bool SelectionPanelFolded { get; set; }
 
+    /// <summary>
+    /// Whose task icons the map shows (the original's 資訊：全部／已選取／無): 0 all the player's
+    /// villagers, 1 the selected ones (and, with a mouse, the one pointed at), 2 none.
+    /// </summary>
+    public int TaskIcons { get; set; } = 1;
+
     /// <summary>Name shown to other players.</summary>
     public string PlayerName { get; set; } = "Player";
 
