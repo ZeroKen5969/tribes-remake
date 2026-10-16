@@ -56,8 +56,11 @@ public static class UnitCard
         return hash.ToHashCode();
     }
 
-    /// <summary>The card of <paramref name="unit"/>; <paramref name="own"/> adds the orders it takes.</summary>
-    public static Control Build(IMatchActions actions, Unit unit, bool own)
+    /// <summary>
+    /// The card of <paramref name="unit"/>; <paramref name="own"/> adds the orders it takes,
+    /// <paramref name="detailed"/> the nine skills (kept out by default so the card covers less of the map).
+    /// </summary>
+    public static Control Build(IMatchActions actions, Unit unit, bool own, bool detailed = false)
     {
         ArgumentNullException.ThrowIfNull(actions);
         ArgumentNullException.ThrowIfNull(unit);
@@ -67,12 +70,31 @@ public static class UnitCard
         card.AddChild(Header(actions, unit));
         card.AddChild(Needs(unit));
         card.AddChild(Status(unit));
-        card.AddChild(SkillGrid(unit));
+        if (detailed)
+        {
+            card.AddChild(SkillGrid(unit));
+        }
         if (own && !actions.Spectating)
         {
             card.AddChild(Orders(actions, unit, m));
         }
         return card;
+    }
+
+    /// <summary>The folded panel's tab of <paramref name="unit"/>: its face and name.</summary>
+    public static Control Tab(IMatchActions actions, Unit unit)
+    {
+        ArgumentNullException.ThrowIfNull(actions);
+        ArgumentNullException.ThrowIfNull(unit);
+        HBoxContainer row = HudPanels.Row(4);
+        row.Name = "UnitTab";
+        row.AddChild(HudPanels.Framed(HudArt.Icon(HudArt.Face(unit.Portrait, actions.ColourOf(unit.Tribe)), 1)));
+        Label name = HudWidgets.Value(GameTexts.UnitName(unit), PixelTheme.Variations.Heading);
+        name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        name.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        name.ClipText = true;
+        row.AddChild(name);
+        return row;
     }
 
     private static Control Header(IMatchActions actions, Unit unit)

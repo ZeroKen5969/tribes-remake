@@ -69,6 +69,7 @@ public partial class SettingsScreen : ScreenBase
             rows.AddChild(Toggle("settings.edge_scroll", settings.EdgeScroll, on => settings.EdgeScroll = on));
         }
         rows.AddChild(Toggle("settings.show_players", settings.ShowPlayers, on => settings.ShowPlayers = on));
+        rows.AddChild(Toggle("settings.unit_card_detailed", settings.UnitCardDetailed, on => settings.UnitCardDetailed = on));
 
         var name = new LineEdit
         {

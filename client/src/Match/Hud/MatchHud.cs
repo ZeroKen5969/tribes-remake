@@ -46,6 +46,9 @@ public partial class MatchHud : CanvasLayer
     /// <summary>The panel of the selection.</summary>
     public ContextPanel Context { get; private set; } = null!;
 
+    /// <summary>The strip of head counts under the top bar (gatherers of each resource, idle villagers).</summary>
+    public WorkforceBar Workers { get; private set; } = null!;
+
     /// <summary>The big buttons.</summary>
     public CommandBar Commands { get; private set; } = null!;
 
@@ -115,6 +118,10 @@ public partial class MatchHud : CanvasLayer
         root.AddChild(Context);
         Top = new TopBar(actions);
         root.AddChild(Top);
+        Workers = new WorkforceBar(actions);
+        // Its width follows the counts: the message list under it moves with its height.
+        Workers.MinimumSizeChanged += () => CallDeferred(MethodName.Relayout);
+        root.AddChild(Workers);
         Commands = new CommandBar(actions);
         root.AddChild(Commands);
         Placement = new PlacementBar(actions);
@@ -198,6 +205,7 @@ public partial class MatchHud : CanvasLayer
     public void SetSceneMode(bool scene)
     {
         Top.Visible = !scene;
+        Workers.Visible = !scene;
         Commands.Visible = !scene;
         Messages.Visible = !scene;
         minimapFrame.Visible = !scene && minimapShown;
@@ -222,6 +230,7 @@ public partial class MatchHud : CanvasLayer
             laidOutPortrait = m.Portrait;
             laidOutTouch = m.Touch;
             Top.Arrange(m);
+            Workers.Arrange(m);
             Commands.Arrange(m, vertical: !m.Portrait);
             Commands.SetToggled(HudCommand.Minimap, minimapShown);
         }
@@ -253,19 +262,33 @@ public partial class MatchHud : CanvasLayer
         Place(minimapFrame, new Rect2(right - miniWidth - gap, top + gap, miniWidth, miniHeight));
         // Wide enough for a villager's orders on one line beside the cross, also with big touch buttons.
         float panelWidth = Mathf.Min(Mathf.Max(Mathf.Clamp(mapWidth * 0.42f, 200, 320), Context.OrdersWidth(m)), mapWidth - (2 * gap));
+        if (Context.Folded)
+        {
+            // The folded tab is only as wide as its face, name and buttons.
+            panelWidth = Mathf.Min(panelWidth, Context.FoldedWidth);
+        }
         float panelHeightMax = size.Y - top - (3 * gap);
         Context.CustomMinimumSize = new Vector2(panelWidth, 0);
         Context.Size = new Vector2(panelWidth, 0);
         float panelHeight = Mathf.Min(panelHeightMax, Context.WantedHeight);
         Place(Context, new Rect2(gap, size.Y - panelHeight - gap, panelWidth, panelHeight));
         float feedWidth = Mathf.Max(120, right - miniWidth - (4 * gap));
-        Place(Messages, new Rect2(gap * 2, top + gap, Mathf.Min(feedWidth, 360), 0));
+        float feedTop = PlaceWorkers(gap, top);
+        Place(Messages, new Rect2(gap * 2, feedTop, Mathf.Min(feedWidth, 360), 0));
         PlacePlayers(right - gap, top + gap, miniWidth, miniHeight + gap);
         Place(Placement, LandscapePlacementBar(m, mapWidth, size.Y, panelWidth, panelHeight));
         Place(Banner, new Rect2(0, top + 2, mapWidth, 14));
         Place(notes, new Rect2(0, top, mapWidth, size.Y - top));
         Insets = new ScreenInsets(0, top, strip, Context.Visible ? panelHeight + gap : 0);
         FreeArea = new Rect2(0, top, mapWidth, size.Y - top);
+    }
+
+    /// <summary>Puts the head counts under the top bar's left end; returns where the message list starts below them.</summary>
+    private float PlaceWorkers(int gap, float top)
+    {
+        Vector2 wanted = Workers.WantedSize;
+        Place(Workers, new Rect2(gap, top + gap, wanted.X, wanted.Y));
+        return Workers.Visible ? top + gap + wanted.Y + gap : top + gap;
     }
 
     /// <summary>
@@ -295,7 +318,7 @@ public partial class MatchHud : CanvasLayer
         float bar = m.Button + (2 * gap);
         Place(Top, new Rect2(0, 0, size.X, top));
         Place(Commands, new Rect2(gap, size.Y - bar + gap, size.X - (2 * gap), m.Button));
-        float panelWidth = size.X - (2 * gap);
+        float panelWidth = Context.Folded ? Mathf.Min(size.X - (2 * gap), Context.FoldedWidth) : size.X - (2 * gap);
         Context.CustomMinimumSize = new Vector2(panelWidth, 0);
         Context.Size = new Vector2(panelWidth, 0);
         float panelHeight = Mathf.Min(size.Y * 0.42f, Context.WantedHeight);
@@ -303,7 +326,7 @@ public partial class MatchHud : CanvasLayer
         float miniWidth = Mathf.Clamp(size.X * 0.36f, 96, 170);
         float miniHeight = Mathf.Round(miniWidth * 0.75f);
         Place(minimapFrame, new Rect2(size.X - miniWidth - gap, top + gap, miniWidth, miniHeight));
-        Place(Messages, new Rect2(gap * 2, top + gap, size.X - miniWidth - (5 * gap), 0));
+        Place(Messages, new Rect2(gap * 2, PlaceWorkers(gap, top), size.X - miniWidth - (5 * gap), 0));
         PlacePlayers(size.X - gap, top + gap, miniWidth, miniHeight + gap);
         float above = bar + (Context.Visible ? panelHeight : 0);
         Place(Placement, new Rect2(gap, size.Y - above - Placement.WantedHeight - gap, size.X - (2 * gap), Placement.WantedHeight));

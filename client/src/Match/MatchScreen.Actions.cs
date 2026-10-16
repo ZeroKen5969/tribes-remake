@@ -263,6 +263,72 @@ public partial class MatchScreen
         }
     }
 
+    /// <summary>Room (map pixels at zoom 1) kept between a revealed villager and the panel's edge.</summary>
+    private const float RevealMargin = 16;
+
+    /// <summary>A villager just picked on the map, to bring out from under the panel once it shows them.</summary>
+    private int? revealUnit;
+
+    /// <summary>
+    /// When the panel that opened for a villager picked on the map covers them, the view moves the
+    /// least it takes (up, or to the side) to bring them out beside it. Waits until the panel shows
+    /// that selection; dropped when the selection changes first.
+    /// </summary>
+    private void RevealSelected()
+    {
+        if (revealUnit is not int id)
+        {
+            return;
+        }
+        if (selection.Kind != SelectionKind.Units || selection.Units.Count != 1 || selection.Units[0] != id)
+        {
+            revealUnit = null;
+            return;
+        }
+        ContextPanel panel = hud.Context;
+        if (!panel.Visible || panel.ShownSelectionVersion != selection.Version)
+        {
+            return;
+        }
+        revealUnit = null;
+        Unit unit = World.Unit(id);
+        Vector2 point = rig.MapToScreen(new Vector2((unit.X * WorldView.CellWidth) + unit.OffsetX + 11, (unit.Y * WorldView.CellHeight) + unit.OffsetY + 8));
+        Rect2 covered = panel.GetGlobalRect().Grow(RevealMargin * rig.Zoom);
+        if (!covered.HasPoint(point))
+        {
+            return;
+        }
+        float up = point.Y - covered.Position.Y, aside = covered.End.X - point.X;
+        Vector2 move = up <= aside ? new Vector2(0, -up) : new Vector2(aside, 0);
+        MatchDev.Log($"REVEAL unit={id} move={move.X:0},{move.Y:0}");
+        rig.PanBy(move);
+    }
+
+    /// <summary>The villager each head count last went to (the next press goes to the one after it).</summary>
+    private readonly int?[] lastJumps = new int?[Workforce.Groups];
+
+    /// <summary>
+    /// A head count was pressed: goes to the next villager of <paramref name="group"/> and selects
+    /// them (only shows them while watching); a note says when the group is empty.
+    /// </summary>
+    private void JumpToGroup(WorkGroup group)
+    {
+        System.Collections.Generic.IReadOnlyList<int> members = Workforce.Members(World, ViewTribe, group);
+        if (Workforce.Next(members, lastJumps[(int)group]) is not int unit)
+        {
+            Note(UiText.T("hud.workforce.none." + group.ToString().ToLowerInvariant()));
+            return;
+        }
+        lastJumps[(int)group] = unit;
+        if (Spectating)
+        {
+            Unit shown = World.Unit(unit);
+            rig.CentreOnCell(shown.X, shown.Y, glide: true);
+            return;
+        }
+        SelectUnit(unit, centre: true);
+    }
+
     /// <inheritdoc/>
     public void SelectBuilding(int building) => selection.SelectBuilding(building);
 

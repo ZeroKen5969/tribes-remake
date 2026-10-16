@@ -274,10 +274,12 @@ public partial class MatchScreen : Node2D, IMatchActions
         {
             rig.Insets = hud.Insets;
             rig.Clamp();
+            RevealSelected();
         };
         hud.Top.MenuPressed += OpenMenu;
         hud.Top.SpeedPicked += PickSpeed;
         hud.Top.ChiefPressed += OpenRoster;
+        hud.Workers.GroupPressed += JumpToGroup;
         hud.Commands.Pressed += OnCommand;
         hud.Messages.PlaceTapped += (x, y) => rig.CentreOnCell(x, y, glide: true);
         hud.Minimap.Pointed += point => rig.CentreOn(point);

@@ -142,6 +142,7 @@ public partial class MatchScreen
         {
             case TapAction.SelectUnit:
                 selection.SelectUnit(pick.Id);
+                revealUnit = pick.Id;
                 break;
             case TapAction.ToggleUnit:
                 selection.ToggleUnit(pick.Id);
@@ -593,6 +594,7 @@ public partial class MatchScreen
         hudSelection = selection.Version;
         hudTime = now;
         hud.Top.Refresh(runner.SpeedPercent, ShownPaused || runner.IsPaused);
+        hud.Workers.Refresh();
         hud.Commands.SetToggled(HudCommand.Pause, ShownPaused);
         hud.Context.Refresh();
         hud.Players.Refresh();

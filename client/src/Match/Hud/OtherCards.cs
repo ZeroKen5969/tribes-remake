@@ -68,8 +68,8 @@ public static class OtherCards
         return row;
     }
 
-    /// <summary>The panel of something that is not the player's, by its cell code.</summary>
-    public static Control Other(IMatchActions actions, int code)
+    /// <summary>The panel of something that is not the player's, by its cell code; <paramref name="detailed"/> shows a villager's skills.</summary>
+    public static Control Other(IMatchActions actions, int code, bool detailed = false)
     {
         ArgumentNullException.ThrowIfNull(actions);
         GameWorld world = actions.World;
@@ -77,7 +77,7 @@ public static class OtherCards
         card.Name = "OtherCard";
         if (CellTargets.UnitOf(world, code) is int unit)
         {
-            card.AddChild(UnitCard.Build(actions, world.Unit(unit), own: false));
+            card.AddChild(UnitCard.Build(actions, world.Unit(unit), own: false, detailed));
             card.AddChild(TribeLine(actions, world.Unit(unit).Tribe));
         }
         else if (CellTargets.AnimalOf(world, code) is int slot)
