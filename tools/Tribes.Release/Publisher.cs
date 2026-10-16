@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -85,6 +86,7 @@ internal static class Publisher
         var payloads = new List<(PlannedFile File, ManifestAsset Asset)>();
         AddPayload(payloads, options.Get("apk"), UpdateManifest.AndroidAppName(version), UpdatePlatform.Android, AssetKind.App, "application/vnd.android.package-archive");
         AddPayload(payloads, options.Get("windows-zip"), UpdateManifest.WindowsAppName(version), UpdatePlatform.Windows, AssetKind.App, "application/zip");
+        RequireFileList(options.Get("windows-zip"));
         if (options.Get("pck") is not null && revision < 1)
         {
             throw new ToolException("A content pack needs --content-rev 1 or higher.");
@@ -242,6 +244,40 @@ internal static class Publisher
         }
 
         payloads.Add((new PlannedFile(name, full, size, sha, contentType), new ManifestAsset(name, platform, kind, size, sha)));
+    }
+
+    /// <summary>
+    /// A Windows zip must carry the list of the game's files (tools/build/package-windows.sh writes
+    /// it), at its root or in its single top-level folder: a game unpacked by hand keeps the list,
+    /// and the next in-game update then replaces only the files on it.
+    /// </summary>
+    private static void RequireFileList(string? zipPath)
+    {
+        if (zipPath is null)
+        {
+            return;
+        }
+
+        string full = Path.GetFullPath(zipPath);
+        bool listed;
+        try
+        {
+            using ZipArchive zip = ZipFile.OpenRead(full);
+            listed = zip.Entries.Any(e =>
+            {
+                string[] parts = e.FullName.Replace('\\', '/').Split('/');
+                return parts[^1] == WindowsAppUpdater.FileListName && parts.Length <= 2;
+            });
+        }
+        catch (InvalidDataException e)
+        {
+            throw new ToolException($"{full} is not a zip: {e.Message}");
+        }
+
+        if (!listed)
+        {
+            throw new ToolException($"{full} has no {WindowsAppUpdater.FileListName}; build it with tools/build/package-windows.sh.");
+        }
     }
 
     private static PlannedFile WriteOut(string dir, string name, byte[] bytes, string contentType)

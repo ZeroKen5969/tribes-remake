@@ -271,11 +271,17 @@ catch (UpdateException e)
 
 ### Windows 本體
 
-1. `ApplyAsync` 把 zip 解到安裝目錄下的 `_update_staging/`（zip 可以直接放安裝目錄的內容，或包在單一最上層資料夾裡；必須含遊戲執行檔，路徑逃出資料夾的項目會被拒絕），再在 `user://updates/windows/` 寫入計畫檔與 PowerShell 腳本並啟動它，回傳 `QuitToFinish`。
-2. 遊戲立刻結束。腳本等遊戲行程結束（最多 2 分鐘），把安裝目錄的舊檔案移到 `_update_backup/`、把新檔案移進來，成功就刪掉備份與暫存，重新啟動遊戲。
+1. `ApplyAsync` 把 zip 解到安裝目錄下的 `_update_staging/`（zip 可以直接放安裝目錄的內容，或包在單一最上層資料夾裡；必須含遊戲執行檔，路徑逃出資料夾的項目會被拒絕），依解出的檔案重寫遊戲檔案清單 `install-files.txt`，再在 `user://updates/windows/` 寫入計畫檔與 PowerShell 腳本並啟動它，回傳 `QuitToFinish`。
+2. 遊戲立刻結束。腳本等遊戲行程結束（最多 2 分鐘），把舊清單（安裝目錄的 `install-files.txt`）與新清單上的檔案移到 `_update_backup/`、把新檔案移進來，成功就刪掉備份與暫存、刪掉舊檔案留下的空資料夾，重新啟動遊戲。
 3. 任何一步失敗（例如檔案被防毒軟體鎖住、重試後仍失敗）就把檔案全部移回原位，啟動舊版遊戲。
 4. 下次啟動時呼叫 `new WindowsAppUpdater(options.Windows).ReadLastResult()` 取得結果（`succeeded`、`rolledBack`、`rollbackFailed`、`failed`，或排了更新但腳本沒有執行的 `notRun`），顯示給玩家後呼叫 `ClearLastResult()`。
 
+- 只動遊戲自己的檔案：不在兩份清單上的檔案與資料夾（包括遊戲資料夾裡玩家放的檔案）一律不碰，所以遊戲解壓縮在「下載」或桌面這類共用資料夾也能安全更新。
+- `install-files.txt`：每行一個相對路徑（`/` 分隔），含清單本身；`tools/build/package-windows.sh` 寫進 zip，發行工具拒絕沒有清單的 Windows zip。安裝目錄沒有清單時，只取代新版帶來的檔案，舊版其他檔案留著。
+- 清單上的路徑若是絕對路徑、含磁碟代號或 `:`、有空的段落（例如 `//`），或含 `.`、`..`，更新直接失敗（`failed`），不動任何檔案。
+- 新版要放的路徑若是玩家的資料夾，更新會還原（`rolledBack`），不會刪那個資料夾。
+- 1.0.5 以前的版本換檔時會清掉安裝目錄裡的所有東西；從這些版本更新前，遊戲要先放在自己的資料夾。
+- `swap.log` 記錄安裝目錄、兩份清單的檔案數，以及每個被移除的舊檔案。
 - 全部是同一個目錄內的改名，不會複製資料，也不會跨磁碟。
 - 還原失敗（`rollbackFailed`）時，舊檔案可能只剩 `_update_backup/` 裡的那份。這時遊戲不會再自動更新（回報「安裝更新失敗」），要先手動把備份裡的檔案搬回安裝目錄並刪掉這個資料夾。
 - 安裝目錄必須可寫入；裝在 `Program Files` 這類需要系統管理員權限的位置時，更新會失敗並還原。

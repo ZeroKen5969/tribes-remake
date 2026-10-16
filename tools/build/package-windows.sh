@@ -24,6 +24,13 @@ stage="$RELEASE_DIR/windows/PrehistoricTribes"
 rm -rf "$stage"
 godot_export release "Windows" "$stage/PrehistoricTribes.exe"
 
+# The list of the game's files (the list itself included): the in-game updater replaces and
+# removes only the files on it, so a game unpacked into a shared folder keeps the user's files.
+list=install-files.txt
+( cd "$stage" && { find . -type f ! -path "./$list" -printf '%P\n'; echo "$list"; } | LC_ALL=C sort ) > "$RELEASE_DIR/windows/$list"
+mv "$RELEASE_DIR/windows/$list" "$stage/$list"
+echo "Listed $(wc -l < "$stage/$list") files in $list"
+
 zip="$RELEASE_DIR/PrehistoricTribes-$APP_VERSION-windows.zip"
 rm -f "$zip"
 "$JAVA_HOME_17/bin/jar.exe" --create --no-manifest --file "$(cygpath -w "$zip")" -C "$(cygpath -w "$stage")" .

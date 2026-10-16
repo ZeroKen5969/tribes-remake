@@ -1,8 +1,11 @@
 # Replaces the game's files with a staged update after the game has exited, and puts the old
 # files back when anything fails. Started by Tribes.Update (WindowsAppUpdater) with -PlanPath
 # pointing to a JSON plan; writes a result file that the game reads at its next start.
-# Runs on Windows PowerShell 5.1. Every entry is moved (renamed) inside the install directory,
-# so the swap never copies data and never crosses volumes.
+# Runs on Windows PowerShell 5.1. Only the game's own files are touched: those on the list of
+# installed files (install-files.txt in the install directory) and those on the update's list.
+# Anything else in the install directory stays where it is, so a game unpacked into a shared
+# folder (Downloads, the desktop) never takes the user's files with it. Every file is moved
+# (renamed) inside the install directory, so the swap never copies data and never crosses volumes.
 param([Parameter(Mandatory = $true)][string]$PlanPath)
 
 $ErrorActionPreference = 'Stop'
@@ -82,6 +85,54 @@ $staging = Join-Path $install $plan.stagingName
 $backup = Join-Path $install $plan.backupName
 $skip = @($plan.preserve) + @($plan.stagingName, $plan.backupName)
 
+function New-NameSet {
+    return ,(New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase))
+}
+
+function Read-FileList([string]$path) {
+    # One path per line, relative to the install directory. A path that is rooted, names a drive
+    # or a stream, or has an empty, '.' or '..' part could reach outside the install directory:
+    # the update stops instead of touching it. Paths under the preserved entries are left out.
+    $names = New-Object System.Collections.Generic.List[string]
+    foreach ($line in [System.IO.File]::ReadAllLines($path, $utf8)) {
+        if ($line.Trim().Length -eq 0) { continue }
+        $parts = $line -split '[\\/]'
+        foreach ($part in $parts) {
+            if ($part.Length -eq 0 -or $part -eq '.' -or $part -eq '..' -or $part.Contains(':')) {
+                throw ('The list ' + $path + ' has a path outside the install directory: ' + $line)
+            }
+        }
+        if ($skip -contains $parts[0]) { continue }
+        $names.Add($parts -join '\')
+    }
+    return ,$names
+}
+
+function Get-Folders($names) {
+    # Every folder above the given files, inside the install directory.
+    $folders = New-NameSet
+    foreach ($name in $names) {
+        $parent = [System.IO.Path]::GetDirectoryName($name)
+        while (-not [string]::IsNullOrEmpty($parent)) {
+            [void]$folders.Add($parent)
+            $parent = [System.IO.Path]::GetDirectoryName($parent)
+        }
+    }
+    return ,$folders
+}
+
+function Remove-EmptyFolders([string]$root, $folders) {
+    # Deepest first, so a folder whose subfolders were just removed goes too. A folder that still
+    # holds anything stays (Directory.Delete without recursion refuses).
+    foreach ($folder in ($folders | Sort-Object { $_.Length } -Descending)) {
+        $path = Join-Path $root $folder
+        if (-not [System.IO.Directory]::Exists($path)) { continue }
+        if (@([System.IO.Directory]::GetFileSystemEntries($path)).Count -gt 0) { continue }
+        try { [System.IO.Directory]::Delete($path) }
+        catch { Write-Log ('could not remove the empty folder ' + $folder + ': ' + $_.Exception.Message) }
+    }
+}
+
 Write-Log ('update to ' + $plan.version + ': waiting for process ' + $plan.pid)
 if (-not (Wait-Game)) {
     Write-Result 'failed' 'The game did not exit.'
@@ -98,20 +149,52 @@ if ([System.IO.Directory]::Exists($backup)) {
     exit 2
 }
 
+$oldListPath = Join-Path $install $plan.fileListName
+$newListPath = Join-Path $staging $plan.fileListName
+try {
+    if (-not [System.IO.File]::Exists($newListPath)) { throw 'The staged update has no list of its files.' }
+    $newFiles = Read-FileList $newListPath
+    if ([System.IO.File]::Exists($oldListPath)) {
+        $oldFiles = Read-FileList $oldListPath
+    } else {
+        $oldFiles = New-Object System.Collections.Generic.List[string]
+        Write-Log 'no list of the installed files: only the files the update brings are replaced'
+    }
+} catch {
+    Write-Result 'failed' $_.Exception.Message
+    Start-Game
+    exit 2
+}
+
+$newSet = New-NameSet
+foreach ($name in $newFiles) { [void]$newSet.Add($name) }
+$gameFiles = New-NameSet
+foreach ($name in $oldFiles) { [void]$gameFiles.Add($name) }
+foreach ($name in $newFiles) { [void]$gameFiles.Add($name) }
+Write-Log ('install directory: ' + $install + ' (installed files listed: ' + $oldFiles.Count + ', files in the update: ' + $newFiles.Count + '; nothing else there is touched)')
+
 $moved = New-Object System.Collections.Generic.List[string]
 $placed = New-Object System.Collections.Generic.List[string]
+$created = New-Object System.Collections.Generic.List[string]
 try {
     [System.IO.Directory]::CreateDirectory($backup) | Out-Null
-    foreach ($entry in [System.IO.Directory]::GetFileSystemEntries($install)) {
-        $name = [System.IO.Path]::GetFileName($entry)
-        if ($skip -contains $name) { continue }
-        Move-Entry $entry (Join-Path $backup $name)
+    foreach ($name in $gameFiles) {
+        $path = Join-Path $install $name
+        if ([System.IO.Directory]::Exists($path)) { throw ('The game file ' + $name + ' is a folder in the install directory.') }
+        if (-not [System.IO.File]::Exists($path)) { continue }
+        $target = Join-Path $backup $name
+        [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($target)) | Out-Null
+        Move-Entry $path $target
         $moved.Add($name)
     }
-    foreach ($entry in [System.IO.Directory]::GetFileSystemEntries($staging)) {
-        $name = [System.IO.Path]::GetFileName($entry)
-        if ($skip -contains $name) { continue }
-        Move-Entry $entry (Join-Path $install $name)
+    foreach ($name in $newFiles) {
+        $target = Join-Path $install $name
+        $folder = [System.IO.Path]::GetDirectoryName($target)
+        for ($missing = $folder; -not [System.IO.Directory]::Exists($missing); $missing = [System.IO.Path]::GetDirectoryName($missing)) {
+            $created.Add($missing)
+        }
+        [System.IO.Directory]::CreateDirectory($folder) | Out-Null
+        Move-Entry (Join-Path $staging $name) $target
         $placed.Add($name)
     }
 } catch {
@@ -130,6 +213,11 @@ try {
         Write-Result 'rollbackFailed' $reason
         exit 3
     }
+    foreach ($folder in ($created | Sort-Object { $_.Length } -Descending)) {
+        try { [System.IO.Directory]::Delete($folder) }
+        catch { Write-Log ('could not remove the folder ' + $folder + ': ' + $_.Exception.Message) }
+    }
+    # The backup holds only the game's (now restored) folders.
     try { [System.IO.Directory]::Delete($backup, $true) }
     catch { Write-Log ('could not delete the empty backup folder: ' + $_.Exception.Message) }
     Write-Result 'rolledBack' $reason
@@ -137,10 +225,16 @@ try {
     exit 1
 }
 
+foreach ($name in $oldFiles) {
+    if (-not $newSet.Contains($name)) { Write-Log ('removed ' + $name) }
+}
+Write-Log ('moved out ' + $moved.Count + ' game files, placed ' + $placed.Count)
 Write-Result 'succeeded' ''
+# The backup holds only the game's old files; the staging folder only what the update left in it.
 try { [System.IO.Directory]::Delete($backup, $true) }
 catch { Write-Log ('could not delete the backup: ' + $_.Exception.Message) }
 try { [System.IO.Directory]::Delete($staging, $true) }
 catch { Write-Log ('could not delete the staging folder: ' + $_.Exception.Message) }
+Remove-EmptyFolders $install (Get-Folders $oldFiles)
 Start-Game
 exit 0

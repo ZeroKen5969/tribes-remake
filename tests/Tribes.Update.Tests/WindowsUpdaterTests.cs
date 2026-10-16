@@ -26,6 +26,7 @@ public sealed class WindowsUpdaterTests : IDisposable
         Write("data/a.txt", "old a");
         Write("old_only.txt", "old");
         Write("editor_data/save.txt", "save");
+        WriteInstalledList("Game.exe", "data/a.txt", "old_only.txt");
     }
 
     public void Dispose() => temp.Dispose();
@@ -40,6 +41,17 @@ public sealed class WindowsUpdaterTests : IDisposable
         Assert.Equal("new exe", File.ReadAllText(Path.Combine(updater.StagingDirectory, "Game.exe")));
         Assert.Equal("new a", File.ReadAllText(Path.Combine(updater.StagingDirectory, "data", "a.txt")));
         Assert.True(Directory.Exists(Path.Combine(updater.StagingDirectory, "empty")));
+    }
+
+    [Fact]
+    public async Task Stage_WritesTheListOfTheStagedFiles()
+    {
+        WindowsAppUpdater updater = Updater();
+
+        // The list is rebuilt from the staged files: a list in the zip is not trusted.
+        await updater.StageAsync(Zip(("Game.exe", "new exe"), ("data/a.txt", "a"), ("editor_data/x.txt", "x"), (WindowsAppUpdater.FileListName, "../evil.txt\n")));
+
+        Assert.Equal(["Game.exe", "data/a.txt", WindowsAppUpdater.FileListName], File.ReadAllLines(StagedList(updater)));
     }
 
     [Fact]
@@ -127,6 +139,7 @@ public sealed class WindowsUpdaterTests : IDisposable
         using JsonDocument plan = JsonDocument.Parse(await File.ReadAllBytesAsync(planPath));
         Assert.Equal(4242, plan.RootElement.GetProperty("pid").GetInt32());
         Assert.Equal(install, plan.RootElement.GetProperty("installDir").GetString());
+        Assert.Equal(WindowsAppUpdater.FileListName, plan.RootElement.GetProperty("fileListName").GetString());
         Assert.Equal("--updated \"two words\"", plan.RootElement.GetProperty("relaunchArguments").GetString());
         Assert.Equal(Path.Combine(install, "Game.exe"), plan.RootElement.GetProperty("relaunchPath").GetString());
         byte[] script = await File.ReadAllBytesAsync(Path.Combine(work, WindowsAppUpdater.ScriptFileName));
@@ -170,6 +183,7 @@ public sealed class WindowsUpdaterTests : IDisposable
         Assert.Equal("new", Read("new_only.txt"));
         Assert.False(File.Exists(Path.Combine(install, "old_only.txt")));
         Assert.Equal("save", Read("editor_data/save.txt"));
+        Assert.Equal(["Game.exe", "data/a.txt", WindowsAppUpdater.FileListName, "new_only.txt"], File.ReadAllLines(Path.Combine(install, WindowsAppUpdater.FileListName)));
         Assert.False(Directory.Exists(updater.StagingDirectory));
         Assert.False(Directory.Exists(Path.Combine(install, WindowsAppUpdater.BackupFolderName)));
         WindowsSwapResult result = updater.ReadLastResult()!;
@@ -181,9 +195,123 @@ public sealed class WindowsUpdaterTests : IDisposable
     }
 
     [WindowsFact]
+    public async Task Swap_LeavesTheUsersFilesInTheFolderAlone()
+    {
+        // A game unpacked into Downloads or onto the desktop shares the folder with the user's files.
+        WriteInstalledList("Game.exe", "data/a.txt", "old_only.txt", "olddir/x.dll", "shared/y.dll", "editor_data/save.txt");
+        Write("olddir/x.dll", "old dll");
+        Write("shared/y.dll", "old dll");
+        Write("shared/mine.txt", "mine");
+        Write("notes.txt", "notes");
+        Write("Photos/cat.jpg", "cat");
+        Write("data/mine.txt", "mine too");
+        Directory.CreateDirectory(Path.Combine(install, "Empty folder"));
+        WindowsAppUpdater updater = Updater();
+        await updater.StageAsync(NewZip());
+        string plan = updater.WriteSwapFiles(AppVersion.Parse("1.1.0"), 0, null);
+
+        Assert.Equal(0, await RunScriptAsync(plan));
+
+        Assert.Equal("new exe", Read("Game.exe"));
+        Assert.Equal("new", Read("new_only.txt"));
+        Assert.False(File.Exists(Path.Combine(install, "old_only.txt")));
+        Assert.False(Directory.Exists(Path.Combine(install, "olddir")));
+        Assert.False(File.Exists(Path.Combine(install, "shared", "y.dll")));
+        Assert.Equal("mine", Read("shared/mine.txt"));
+        Assert.Equal("notes", Read("notes.txt"));
+        Assert.Equal("cat", Read("Photos/cat.jpg"));
+        Assert.Equal("mine too", Read("data/mine.txt"));
+        Assert.True(Directory.Exists(Path.Combine(install, "Empty folder")));
+        Assert.Equal("save", Read("editor_data/save.txt"));
+        string log = File.ReadAllText(Path.Combine(work, WindowsAppUpdater.LogFileName));
+        Assert.Contains("install directory: " + install, log);
+        Assert.Contains("removed old_only.txt", log);
+        Assert.Contains("removed olddir\\x.dll", log);
+    }
+
+    [WindowsFact]
+    public async Task Swap_RollingBackLeavesTheUsersFilesAlone()
+    {
+        Write("notes.txt", "notes");
+        Write("data/mine.txt", "mine");
+        WindowsAppUpdater updater = Updater();
+        await updater.StageAsync(NewZip());
+        string plan = updater.WriteSwapFiles(AppVersion.Parse("1.1.0"), 0, null);
+
+        int exit;
+        using (new FileStream(Path.Combine(updater.StagingDirectory, "new_only.txt"), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            exit = await RunScriptAsync(plan);
+        }
+
+        Assert.Equal(1, exit);
+        Assert.Equal("notes", Read("notes.txt"));
+        Assert.Equal("mine", Read("data/mine.txt"));
+        Assert.Equal("old exe", Read("Game.exe"));
+        Assert.Equal("old", Read("old_only.txt"));
+        Assert.False(Directory.Exists(Path.Combine(install, WindowsAppUpdater.BackupFolderName)));
+    }
+
+    [WindowsFact]
+    public async Task Swap_RollsBackRatherThanReplaceAFolderOfTheUser()
+    {
+        Write("new_only.txt/inside.txt", "the user's folder");
+        WindowsAppUpdater updater = Updater();
+        await updater.StageAsync(NewZip());
+        string plan = updater.WriteSwapFiles(AppVersion.Parse("1.1.0"), 0, null);
+
+        Assert.Equal(1, await RunScriptAsync(plan));
+
+        Assert.Equal("the user's folder", Read("new_only.txt/inside.txt"));
+        Assert.Equal("old exe", Read("Game.exe"));
+        Assert.Equal("rolledBack", updater.ReadLastResult()!.Status);
+    }
+
+    [WindowsFact]
+    public async Task Swap_WithoutAnInstalledListReplacesOnlyTheUpdatesFiles()
+    {
+        File.Delete(Path.Combine(install, WindowsAppUpdater.FileListName));
+        WindowsAppUpdater updater = Updater();
+        await updater.StageAsync(NewZip());
+        string plan = updater.WriteSwapFiles(AppVersion.Parse("1.1.0"), 0, null);
+
+        Assert.Equal(0, await RunScriptAsync(plan));
+
+        Assert.Equal("new exe", Read("Game.exe"));
+        Assert.Equal("new a", Read("data/a.txt"));
+        Assert.Equal("old", Read("old_only.txt"));
+        Assert.True(File.Exists(Path.Combine(install, WindowsAppUpdater.FileListName)));
+    }
+
+    [WindowsTheory]
+    [InlineData("../outside.txt")]
+    [InlineData("data/../../outside.txt")]
+    [InlineData("/outside.txt")]
+    [InlineData("C:/outside.txt")]
+    [InlineData("data//a.txt")]
+    public async Task Swap_RefusesAListWithAPathOutsideTheFolder(string entry)
+    {
+        string outside = Path.Combine(temp.Path, "outside.txt");
+        File.WriteAllText(outside, "outside");
+        WriteInstalledList("Game.exe", "data/a.txt", "old_only.txt", entry);
+        WindowsAppUpdater updater = Updater();
+        await updater.StageAsync(NewZip());
+        string plan = updater.WriteSwapFiles(AppVersion.Parse("1.1.0"), 0, null);
+
+        Assert.Equal(2, await RunScriptAsync(plan));
+
+        Assert.Equal("failed", updater.ReadLastResult()!.Status);
+        Assert.Equal("outside", File.ReadAllText(outside));
+        Assert.Equal("old exe", Read("Game.exe"));
+        Assert.Equal("old a", Read("data/a.txt"));
+        Assert.False(Directory.Exists(Path.Combine(install, WindowsAppUpdater.BackupFolderName)));
+    }
+
+    [WindowsFact]
     public async Task Swap_RollsBackWhenAnOldFileIsLocked()
     {
         Write("zz_locked.bin", "locked");
+        WriteInstalledList("Game.exe", "data/a.txt", "old_only.txt", "zz_locked.bin");
         WindowsAppUpdater updater = Updater();
         await updater.StageAsync(NewZip());
         string plan = updater.WriteSwapFiles(AppVersion.Parse("1.1.0"), 0, null);
@@ -350,6 +478,12 @@ public sealed class WindowsUpdaterTests : IDisposable
 
     private string Read(string relative) => File.ReadAllText(Path.Combine(install, relative));
 
+    /// <summary>The list an earlier install left: the given files and the list itself.</summary>
+    private void WriteInstalledList(params string[] names) =>
+        Write(WindowsAppUpdater.FileListName, string.Join('\n', names.Append(WindowsAppUpdater.FileListName)) + "\n");
+
+    private static string StagedList(WindowsAppUpdater updater) => Path.Combine(updater.StagingDirectory, WindowsAppUpdater.FileListName);
+
     private static Process StartShortProcess() =>
         Process.Start(new ProcessStartInfo("ping", "-n 3 127.0.0.1") { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true })!;
 
@@ -378,6 +512,18 @@ public sealed class WindowsUpdaterTests : IDisposable
 public sealed class WindowsFactAttribute : FactAttribute
 {
     public WindowsFactAttribute()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Skip = "Needs Windows PowerShell.";
+        }
+    }
+}
+
+/// <summary>A theory that needs Windows (it runs the PowerShell swap script).</summary>
+public sealed class WindowsTheoryAttribute : TheoryAttribute
+{
+    public WindowsTheoryAttribute()
     {
         if (!OperatingSystem.IsWindows())
         {

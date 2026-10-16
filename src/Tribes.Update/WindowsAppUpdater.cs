@@ -67,7 +67,9 @@ public sealed record WindowsSwapResult(string Status, string Detail, string Vers
 /// folder inside the install directory while the game runs; <see cref="ScheduleSwap"/> writes a
 /// plan and a PowerShell script and starts it; the game then quits. The script waits for the
 /// game to exit, moves the old files into a backup folder and the staged files into place, moves
-/// everything back if a step fails, and starts the game again.
+/// everything back if a step fails, and starts the game again. Only the game's own files move:
+/// those on the installed <see cref="FileListName"/> and on the update's. Other files in the
+/// install directory are never touched, so a game unpacked into a shared folder is safe to update.
 /// </summary>
 public sealed class WindowsAppUpdater
 {
@@ -88,6 +90,14 @@ public sealed class WindowsAppUpdater
 
     /// <summary>The log file in the work directory.</summary>
     public const string LogFileName = "swap.log";
+
+    /// <summary>
+    /// The list of the game's files in the install directory: one path per line, relative and
+    /// '/'-separated, the list itself included. The package ships it (for a game unpacked by hand)
+    /// and staging rewrites it from the staged files; the swap moves only the files on the
+    /// installed list and the staged one.
+    /// </summary>
+    public const string FileListName = "install-files.txt";
 
     private const string ScriptResource = "Tribes.Update.WindowsSwap.ps1";
     private const long ExtractMargin = 16 * 1024 * 1024;
@@ -118,10 +128,10 @@ public sealed class WindowsAppUpdater
     private string WorkDirectory => Path.GetFullPath(options.WorkDirectory);
 
     /// <summary>
-    /// Unpacks a verified zip into the staging folder. The zip holds the install directory's
-    /// contents, at its root or inside one top-level folder, and must contain the executable.
-    /// Leftover staging and backup folders are removed first: the running game shows that the
-    /// current files work.
+    /// Unpacks a verified zip into the staging folder and writes the list of its files there. The
+    /// zip holds the install directory's contents, at its root or inside one top-level folder, and
+    /// must contain the executable. Leftover staging and backup folders are removed first: the
+    /// running game shows that the current files work.
     /// </summary>
     public Task StageAsync(string verifiedZipPath, CancellationToken cancellationToken = default)
     {
@@ -154,7 +164,8 @@ public sealed class WindowsAppUpdater
     public string WriteSwapFiles(AppVersion version, int processId, DateTime? processStartUtc)
     {
         ArgumentNullException.ThrowIfNull(version);
-        if (!Directory.Exists(StagingDirectory) || !File.Exists(Path.Combine(StagingDirectory, executableRelative)))
+        if (!Directory.Exists(StagingDirectory) || !File.Exists(Path.Combine(StagingDirectory, executableRelative))
+            || !File.Exists(Path.Combine(StagingDirectory, FileListName)))
         {
             throw new UpdateException(UpdateErrorKind.InstallFailed, "No staged update to install.");
         }
@@ -290,6 +301,8 @@ public sealed class WindowsAppUpdater
             {
                 throw new UpdateException(UpdateErrorKind.InstallFailed, $"The update does not contain {executableRelative}.");
             }
+
+            WriteFileList(StagingDirectory);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException or UpdateException
             or OperationCanceledException or OverflowException or NotSupportedException or ArgumentException)
@@ -355,6 +368,31 @@ public sealed class WindowsAppUpdater
         }
     }
 
+    /// <summary>
+    /// Writes <see cref="FileListName"/> for the files under <paramref name="root"/>, leaving out
+    /// the entries the swap does not touch (preserved, staging, backup).
+    /// </summary>
+    private void WriteFileList(string root)
+    {
+        var names = new List<string> { FileListName };
+        foreach (string path in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+        {
+            string name = Path.GetRelativePath(root, path).Replace('\\', '/');
+            string top = name.Split('/')[0];
+            if (!string.Equals(name, FileListName, StringComparison.OrdinalIgnoreCase) && !IsUntouched(top))
+            {
+                names.Add(name);
+            }
+        }
+
+        names.Sort(StringComparer.Ordinal);
+        File.WriteAllText(Path.Combine(root, FileListName), string.Join('\n', names) + "\n", new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+    }
+
+    private bool IsUntouched(string topLevelName) =>
+        options.PreservedEntries.Append(StagingFolderName).Append(BackupFolderName)
+            .Contains(topLevelName, StringComparer.OrdinalIgnoreCase);
+
     /// <summary>"folder/" when every entry is inside one top-level folder, otherwise "".</summary>
     private static string SingleTopFolder(ZipArchive zip)
     {
@@ -391,6 +429,7 @@ public sealed class WindowsAppUpdater
             writer.WriteString("installDir", installDirectory);
             writer.WriteString("stagingName", StagingFolderName);
             writer.WriteString("backupName", BackupFolderName);
+            writer.WriteString("fileListName", FileListName);
             writer.WriteStartArray("preserve");
             foreach (string name in options.PreservedEntries)
             {

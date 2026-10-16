@@ -33,7 +33,7 @@ public sealed class ReleaseToolTests : IDisposable
         File.WriteAllText(keyPath, key.ExportPkcs8PrivateKeyPem());
         trusted = TestData.Trust(key);
         File.WriteAllBytes(temp.File("app.apk"), TestData.Bytes(5000, 1));
-        File.WriteAllBytes(temp.File("app.zip"), TestData.Bytes(6000, 2));
+        WriteZip(temp.File("app.zip"), ("PrehistoricTribes.exe", TestData.Bytes(6000, 2)), (WindowsAppUpdater.FileListName, Encoding.UTF8.GetBytes("PrehistoricTribes.exe\ninstall-files.txt\n")));
         File.WriteAllBytes(temp.File("content.pck"), TestData.Bytes(700, 3));
         File.WriteAllText(temp.File("notes.txt"), "第一行\r\n第二行\r\n", Encoding.UTF8);
     }
@@ -236,6 +236,31 @@ public sealed class ReleaseToolTests : IDisposable
         Out.RegisterSecret("synthetic-secret-value");
 
         Assert.Equal("token *** end", Out.Redact("token synthetic-secret-value end"));
+    }
+
+    [Fact]
+    public void BuildPlan_RefusesAWindowsZipWithoutTheFileList()
+    {
+        // Without the list a game unpacked by hand would not know which files are its own.
+        WriteZip(temp.File("app.zip"), ("PrehistoricTribes.exe", TestData.Bytes(100, 4)));
+        Assert.Contains(WindowsAppUpdater.FileListName, Assert.Throws<ToolException>(() => Plan()).Message);
+
+        File.WriteAllBytes(temp.File("app.zip"), TestData.Bytes(100, 5));
+        Assert.Throws<ToolException>(() => Plan());
+
+        WriteZip(temp.File("app.zip"), ("PrehistoricTribes/PrehistoricTribes.exe", TestData.Bytes(100, 6)), ("PrehistoricTribes/" + WindowsAppUpdater.FileListName, [10]));
+        Assert.NotNull(Plan());
+    }
+
+    private static void WriteZip(string path, params (string Name, byte[] Bytes)[] entries)
+    {
+        File.Delete(path);
+        using System.IO.Compression.ZipArchive zip = System.IO.Compression.ZipFile.Open(path, System.IO.Compression.ZipArchiveMode.Create);
+        foreach ((string name, byte[] bytes) in entries)
+        {
+            using Stream stream = zip.CreateEntry(name).Open();
+            stream.Write(bytes);
+        }
     }
 
     private ReleasePlan Plan(params string[] extra)

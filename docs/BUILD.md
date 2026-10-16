@@ -50,7 +50,7 @@ bash tools/build/package-windows.sh
 
 | 產出 | 內容 |
 |---|---|
-| `build/release/windows/PrehistoricTribes/` | 匯出的遊戲資料夾：`PrehistoricTribes.exe`（遊戲資料嵌在執行檔內）與 `data_Tribes.Client_windows_x86_64/`（.NET 組件） |
+| `build/release/windows/PrehistoricTribes/` | 匯出的遊戲資料夾：`PrehistoricTribes.exe`（遊戲資料嵌在執行檔內）、`data_Tribes.Client_windows_x86_64/`（.NET 組件），以及遊戲檔案清單 `install-files.txt`（遊戲內更新只換清單上的檔案） |
 | `build/release/PrehistoricTribes-<版本>-windows.zip` | 上面資料夾的內容（不含外層資料夾），就是發行工具的 `--windows-zip`，也是遊戲內更新換檔用的格式 |
 | `build/release/windows/check.png` | 檢查用截圖 |
 
