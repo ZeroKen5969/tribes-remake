@@ -144,9 +144,10 @@ public partial class PauseMenu : HudPopup
 }
 
 /// <summary>
-/// The settings that can change during a match: language, music volume, hints (also told to the
-/// rules), the mouse at the window edge scrolling the map, the interface size, window or full screen
-/// (PC) and, with other people, the player list.
+/// The settings that can change during a match, each shown at once: language, music volume, hints
+/// (also told to the rules), the mouse at the window edge scrolling the map, the interface size,
+/// whose task icons the map shows, whether a villager's panel shows the skills, window or full
+/// screen (PC) and, with other people, the player list.
 /// </summary>
 public partial class MatchSettingsPanel : HudPopup
 {
@@ -226,6 +227,13 @@ public partial class MatchSettingsPanel : HudPopup
             });
         taskIcons.Name = "TaskIcons";
         Content.AddChild(UiFactory.Row("settings.task_icons", taskIcons));
+        var skills = new CheckBox { Name = "UnitCardDetailed", Text = "settings.unit_card_detailed", ButtonPressed = settings.UnitCardDetailed };
+        skills.Toggled += on =>
+        {
+            settings.UnitCardDetailed = on;
+            settings.Save();
+        };
+        Content.AddChild(skills);
         if (GameApp.CanFullscreen)
         {
             GameApp app = GameApp.Instance;

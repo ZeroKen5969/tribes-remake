@@ -13,9 +13,8 @@ namespace Tribes.Client.MatchPlay.Hud;
 /// hidden when nothing is selected. Beside the card stand its buttons: a cross that lets go of the
 /// selection (on touch screens a tap on open ground sends the selected villagers there, so this is
 /// the way to deselect on screen), one that folds the panel into a small tab (face and name) and
-/// opens it again, and on a villager's card one that shows or hides the skills. Folding is
-/// remembered in the settings; the skills start each match as the settings say and the button
-/// changes them for this match only.
+/// opens it again, and on a villager's card one that shows or hides the skills. Both are
+/// settings: the buttons save them, and a change made in the menu shows at once.
 /// </summary>
 public partial class ContextPanel : PanelContainer
 {
@@ -34,9 +33,6 @@ public partial class ContextPanel : PanelContainer
     private int buttonSize;
     private Control? card;
     private int shownSignature = int.MinValue;
-
-    /// <summary>Whether a villager's card shows the skills in this match (it starts as the settings say).</summary>
-    private bool detailed;
 
     /// <summary>A panel for the match <paramref name="actions"/> plays.</summary>
     public ContextPanel(IMatchActions actions)
@@ -104,7 +100,6 @@ public partial class ContextPanel : PanelContainer
         Name = "ContextPanel";
         ThemeTypeVariation = PixelTheme.Variations.Sheet;
         MouseFilter = MouseFilterEnum.Stop;
-        detailed = Settings.UnitCardDetailed;
         holder = HudPanels.Column(2);
         // A card taller than the room it gets scrolls instead of running off the screen; the
         // buttons stay beside it, so they never scroll away or cover the card.
@@ -203,8 +198,11 @@ public partial class ContextPanel : PanelContainer
         fold!.Icon = HudWidgets.Enlarge(HudArt.Painted(folded ? PaintedIcon.Plus : PaintedIcon.Minus), actions.Metrics.IconScale);
         fold.TooltipText = folded ? "hud.panel.unfold" : "hud.panel.fold";
         details!.Visible = !folded && ShowsOneVillager(selection);
-        details.SetPressedNoSignal(detailed);
+        details.SetPressedNoSignal(Detailed);
     }
+
+    /// <summary>Whether a villager's card shows the skills.</summary>
+    private static bool Detailed => Settings.UnitCardDetailed;
 
     /// <summary>Folds or opens the panel, remembered in the settings.</summary>
     private void ToggleFolded()
@@ -214,10 +212,11 @@ public partial class ContextPanel : PanelContainer
         Refresh(force: true);
     }
 
-    /// <summary>Shows or hides a villager's skills for the rest of this match (the settings keep the default).</summary>
+    /// <summary>Shows or hides a villager's skills, remembered in the settings.</summary>
     private void ToggleDetailed()
     {
-        detailed = !detailed;
+        Settings.UnitCardDetailed = !Settings.UnitCardDetailed;
+        Settings.Save();
         Refresh(force: true);
     }
 
@@ -236,7 +235,7 @@ public partial class ContextPanel : PanelContainer
         hash.Add(actions.Metrics.Button);
         hash.Add(Tribes.Client.Ui.Text.UiText.Current);
         hash.Add(Settings.SelectionPanelFolded);
-        hash.Add(detailed);
+        hash.Add(Detailed);
         switch (selection.Kind)
         {
             case SelectionKind.Units when selection.Units.Count == 1:
@@ -272,10 +271,10 @@ public partial class ContextPanel : PanelContainer
         GameWorld world = actions.World;
         return selection.Kind switch
         {
-            SelectionKind.Units when selection.Units.Count == 1 => UnitCard.Build(actions, world.Unit(selection.Units[0]), own: true, detailed),
+            SelectionKind.Units when selection.Units.Count == 1 => UnitCard.Build(actions, world.Unit(selection.Units[0]), own: true, Detailed),
             SelectionKind.Units => OtherCards.Group(actions, selection.Units),
             SelectionKind.Building => BuildingCard.Build(actions, world.Building(selection.Building), own: true),
-            SelectionKind.Other => OtherCards.Other(actions, selection.OtherCode, detailed),
+            SelectionKind.Other => OtherCards.Other(actions, selection.OtherCode, Detailed),
             _ => null,
         };
     }
