@@ -8,7 +8,8 @@ namespace Tribes.Client.MatchPlay.Tests;
 
 /// <summary>
 /// The top bar's head counts (<see cref="Workforce"/>): villagers by what they gather, the builders
-/// and the idle grown-ups, outside the buildings, and the jump through one group in turn.
+/// at work and waiting, the grown-ups standing idle, the children and everyone else, outside the
+/// buildings, and the jump through one group in turn.
 /// </summary>
 public sealed class WorkforceTests
 {
@@ -39,24 +40,46 @@ public sealed class WorkforceTests
     }
 
     [Fact]
-    public void Idle_counts_only_grown_ups_who_are_not_called_to_arms()
+    public void Idle_counts_only_grown_ups_standing_with_nothing_to_do()
     {
         GameWorld world = Repo.Instance.Started(2).World;
         int[] outside = OutsideAdults(world);
-        Unit idle = world.Unit(outside[0]), child = world.Unit(outside[1]), soldier = world.Unit(outside[2]);
-        idle.AssignedTask = child.AssignedTask = soldier.AssignedTask = 69;
-        child.Age = RuleNumbers.AdultAge - 1;
+        Unit idle = world.Unit(outside[0]), pausing = world.Unit(outside[1]), walking = world.Unit(outside[2]);
+        Unit fighting = world.Unit(outside[3]), soldier = world.Unit(outside[4]);
+        foreach (Unit unit in new[] { idle, pausing, walking, fighting, soldier })
+        {
+            Stand(unit, IdleTask);
+        }
+        pausing.Action = PauseAction;
+        pausing.SavedAction = IdleTask;
+        walking.DestinationX = walking.X + 1;
+        fighting.Action = 0; // a melee attack ordered by the player: its long-term task is the idle one
         soldier.Status |= UnitStatus.Mustered;
 
         Assert.Equal(WorkGroup.Idle, Workforce.GroupOf(idle));
-        Assert.Null(Workforce.GroupOf(child));
-        Assert.Null(Workforce.GroupOf(soldier));
+        Assert.Equal(WorkGroup.Idle, Workforce.GroupOf(pausing));
+        Assert.Equal(WorkGroup.Other, Workforce.GroupOf(walking));
+        Assert.Equal(WorkGroup.Other, Workforce.GroupOf(fighting));
+        Assert.Equal(WorkGroup.Other, Workforce.GroupOf(soldier));
         Assert.Contains(idle.Id, Workforce.Members(world, 0, WorkGroup.Idle));
-        Assert.DoesNotContain(child.Id, Workforce.Members(world, 0, WorkGroup.Idle));
+        Assert.DoesNotContain(walking.Id, Workforce.Members(world, 0, WorkGroup.Idle));
     }
 
     [Fact]
-    public void Builders_are_the_villagers_on_a_construction_task()
+    public void Children_have_their_own_count_whatever_they_do()
+    {
+        GameWorld world = Repo.Instance.Started(2).World;
+        Unit child = world.Unit(OutsideAdults(world)[0]);
+        Stand(child, IdleTask);
+        child.Age = RuleNumbers.AdultAge - 1;
+
+        Assert.Equal(WorkGroup.Children, Workforce.GroupOf(child));
+        child.AssignedTask = 11;
+        Assert.Equal(WorkGroup.Children, Workforce.GroupOf(child));
+    }
+
+    [Fact]
+    public void Builders_are_the_villagers_on_a_construction_task_and_wait_apart()
     {
         GameWorld world = Repo.Instance.Started(2).World;
         int[] outside = OutsideAdults(world);
@@ -68,11 +91,27 @@ public sealed class WorkforceTests
         Unit builder = world.Unit(outside[0]);
         foreach (int task in construction)
         {
-            builder.AssignedTask = task;
+            Stand(builder, task);
+            Assert.Equal(WorkGroup.IdleBuilders, Workforce.GroupOf(builder));
+            builder.Action = BuildAction;
             Assert.Equal(WorkGroup.Builders, Workforce.GroupOf(builder));
         }
         Assert.Contains(builder.Id, Workforce.Members(world, 0, WorkGroup.Builders));
         Assert.Equal(Workforce.Members(world, 0, WorkGroup.Builders).Count, Workforce.Counts(world, 0)[(int)WorkGroup.Builders]);
+    }
+
+    [Fact]
+    public void Every_villager_outside_is_counted_once()
+    {
+        GameSimulation game = Repo.Instance.Started(2);
+        for (int tick = 0; tick < 200; tick++)
+        {
+            game.Step(TickInput.Idle);
+        }
+        GameWorld world = game.World;
+        int outside = BuildingOffers.LivingUnits(world, 0).Count(id => BuildingOffers.BuildingInside(world, world.Unit(id)) == 0);
+
+        Assert.Equal(outside, Workforce.Counts(world, 0).Sum());
     }
 
     [Fact]
@@ -95,6 +134,18 @@ public sealed class WorkforceTests
 
         Assert.Equal(new int[Workforce.Groups], Workforce.Counts(world, -1));
         Assert.Equal(new int[Workforce.Groups], Workforce.Counts(world, world.Tribes.Count));
+    }
+
+    private const int IdleTask = 69, PauseAction = 84, BuildAction = 56;
+
+    /// <summary>Makes <paramref name="unit"/> an idling grown-up on <paramref name="task"/>, standing where it was going.</summary>
+    private static void Stand(Unit unit, int task)
+    {
+        unit.AssignedTask = task;
+        unit.Action = IdleTask;
+        unit.DestinationX = unit.X;
+        unit.DestinationY = unit.Y;
+        unit.Status &= ~UnitStatus.Mustered;
     }
 
     private static int[] OutsideAdults(GameWorld world) => BuildingOffers.LivingUnits(world, 0)

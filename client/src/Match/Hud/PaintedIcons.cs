@@ -66,6 +66,9 @@ public enum PaintedIcon
 
     /// <summary>Three coloured marks with lines: the list of players.</summary>
     Players,
+
+    /// <summary>Three dots: everyone else.</summary>
+    Others,
 }
 
 /// <summary>Paints <see cref="PaintedIcon"/>s in the original's ink and parchment colours (12x12, transparent).</summary>
@@ -198,6 +201,11 @@ public static class PaintedIcons
                 Box(image, new Rect2I(0, 0, 12, 12), new BoxStyle(ink, UiPalette.BrownLight, UiPalette.Gold, UiPalette.Brown, UiPalette.Clear));
                 Fill(image, new Rect2I(3, 1, 6, 4), UiPalette.Paper);
                 Fill(image, new Rect2I(3, 7, 6, 4), UiPalette.Ink);
+                break;
+            case PaintedIcon.Others:
+                Fill(image, new Rect2I(0, 5, 2, 2), ink);
+                Fill(image, new Rect2I(5, 5, 2, 2), ink);
+                Fill(image, new Rect2I(10, 5, 2, 2), ink);
                 break;
         }
         return image;

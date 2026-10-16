@@ -273,7 +273,7 @@ public partial class MatchHud : CanvasLayer
         float panelHeight = Mathf.Min(panelHeightMax, Context.WantedHeight);
         Place(Context, new Rect2(gap, size.Y - panelHeight - gap, panelWidth, panelHeight));
         float feedWidth = Mathf.Max(120, right - miniWidth - (4 * gap));
-        float feedTop = PlaceWorkers(gap, top);
+        float feedTop = PlaceWorkers(gap, top, right - miniWidth - (3 * gap));
         Place(Messages, new Rect2(gap * 2, feedTop, Mathf.Min(feedWidth, 360), 0));
         PlacePlayers(right - gap, top + gap, miniWidth, miniHeight + gap);
         Place(Placement, LandscapePlacementBar(m, mapWidth, size.Y, panelWidth, panelHeight));
@@ -283,9 +283,13 @@ public partial class MatchHud : CanvasLayer
         FreeArea = new Rect2(0, top, mapWidth, size.Y - top);
     }
 
-    /// <summary>Puts the head counts under the top bar's left end; returns where the message list starts below them.</summary>
-    private float PlaceWorkers(int gap, float top)
+    /// <summary>
+    /// Puts the head counts under the top bar's left end, in rows that fit in
+    /// <paramref name="room"/> (left of the minimap); returns where the message list starts below them.
+    /// </summary>
+    private float PlaceWorkers(int gap, float top, float room)
     {
+        Workers.FitWidth(room);
         Vector2 wanted = Workers.WantedSize;
         Place(Workers, new Rect2(gap, top + gap, wanted.X, wanted.Y));
         return Workers.Visible ? top + gap + wanted.Y + gap : top + gap;
@@ -326,7 +330,7 @@ public partial class MatchHud : CanvasLayer
         float miniWidth = Mathf.Clamp(size.X * 0.36f, 96, 170);
         float miniHeight = Mathf.Round(miniWidth * 0.75f);
         Place(minimapFrame, new Rect2(size.X - miniWidth - gap, top + gap, miniWidth, miniHeight));
-        Place(Messages, new Rect2(gap * 2, PlaceWorkers(gap, top), size.X - miniWidth - (5 * gap), 0));
+        Place(Messages, new Rect2(gap * 2, PlaceWorkers(gap, top, size.X - miniWidth - (3 * gap)), size.X - miniWidth - (5 * gap), 0));
         PlacePlayers(size.X - gap, top + gap, miniWidth, miniHeight + gap);
         float above = bar + (Context.Visible ? panelHeight : 0);
         Place(Placement, new Rect2(gap, size.Y - above - Placement.WantedHeight - gap, size.X - (2 * gap), Placement.WantedHeight));

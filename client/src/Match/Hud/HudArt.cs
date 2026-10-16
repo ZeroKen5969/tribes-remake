@@ -143,6 +143,44 @@ public static class HudArt
     /// <summary>The inline icon of control code <paramref name="code"/> (0..22): tasks, skills, combat marks.</summary>
     public static Texture2D Inline(int code) => Sprite(FirstInlineIcon + code);
 
+    /// <summary>A child as the original's unit bar draws it: the still picture of the children's animation.</summary>
+    public static Texture2D ChildFigure() => Get("child", () =>
+    {
+        var request = new BodyRequest(BodySubject.Villager, ChildStillAnimation, 0, 0)
+        {
+            Portrait = true,
+            Appearance = VillagerAppearance.Default with { Age = ChildFigureAge },
+        };
+        return Paint(OriginalArt.Shared.Composers.Bodies.Compose(request).Drawing.Parts);
+    });
+
+    /// <summary>The children's standing animation, whose still picture is a child's portrait.</summary>
+    private const int ChildStillAnimation = 14;
+
+    /// <summary>An age that draws a child.</summary>
+    private const int ChildFigureAge = 6;
+
+    /// <summary><paramref name="texture"/> in grey and paler, for something waiting (cached as <paramref name="key"/>).</summary>
+    public static Texture2D Greyed(string key, Texture2D texture)
+    {
+        ArgumentNullException.ThrowIfNull(texture);
+        return Get("grey." + key, () =>
+        {
+            Image image = texture.GetImage();
+            image.Convert(Image.Format.Rgba8);
+            for (int y = 0; y < image.GetHeight(); y++)
+            {
+                for (int x = 0; x < image.GetWidth(); x++)
+                {
+                    Color c = image.GetPixel(x, y);
+                    float grey = (c.R * 0.3f) + (c.G * 0.59f) + (c.B * 0.11f);
+                    image.SetPixel(x, y, new Color(grey, grey, grey, c.A * 0.6f));
+                }
+            }
+            return ImageTexture.CreateFromImage(image);
+        });
+    }
+
     /// <summary>A painted icon the original lacks.</summary>
     public static Texture2D Painted(PaintedIcon icon) => Get("i" + icon, () => ImageTexture.CreateFromImage(PaintedIcons.Paint(icon)));
 

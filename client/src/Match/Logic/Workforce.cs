@@ -19,22 +19,36 @@ public enum WorkGroup
     /// <summary>Gathering bones.</summary>
     Bones,
 
-    /// <summary>Builders: building a site, upgrading or repairing, or waiting to be sent to one.</summary>
+    /// <summary>Builders at work: building a site, upgrading or repairing, or on the way to one.</summary>
     Builders,
 
-    /// <summary>Grown-ups with no task (and not called to arms).</summary>
+    /// <summary>Builders standing with nothing to build, waiting to be sent to the next site.</summary>
+    IdleBuilders,
+
+    /// <summary>Grown-ups with no task standing with nothing to do (and not called to arms).</summary>
     Idle,
+
+    /// <summary>Children.</summary>
+    Children,
+
+    /// <summary>Everyone else: fighting, called to arms, on the way to eat, sleep, train and so on.</summary>
+    Other,
 }
 
 /// <summary>
-/// Counts a tribe's villagers by <see cref="WorkGroup"/> from their long-term task (so a
-/// gatherer walking to the store still counts as one), and picks the next one of a group for the
-/// top bar's jump: villagers inside a building are left out, since the view cannot show them.
+/// Counts a tribe's villagers by <see cref="WorkGroup"/>, gatherers and builders by their
+/// long-term task (so a gatherer walking to the store still counts as one), and picks the next one
+/// of a group for the top bar's jump: villagers inside a building are left out, since the view
+/// cannot show them. Every villager outside is in exactly one group.
 /// </summary>
 public static class Workforce
 {
     /// <summary>Number of <see cref="WorkGroup"/> values.</summary>
-    public const int Groups = 6;
+    public const int Groups = 9;
+
+    // What a unit does now: the idle action, and the pause between two actions (the one it goes
+    // back to is saved), which the rules count as idle when it goes back to idling.
+    private const int IdleAction = 69, PauseAction = 84;
 
     // Long-term tasks (action numbers): the gathering actions 10..16 (one per carried item; 2
     // wood, 3 stones, 4 bones, the rest food), the hunting task, and the idle task.
@@ -46,21 +60,37 @@ public static class Workforce
     // repair work, sent to a site, waiting for material.
     private const int BuildTask = 56, UpgradeTask = 76, SentBuilderTask = 77, WaitForMaterialTask = 78;
 
-    /// <summary>The group <paramref name="unit"/> belongs to, or null when it does something else or is a child.</summary>
-    public static WorkGroup? GroupOf(Unit unit)
+    /// <summary>The group <paramref name="unit"/> belongs to.</summary>
+    public static WorkGroup GroupOf(Unit unit)
     {
         ArgumentNullException.ThrowIfNull(unit);
+        if (unit.Age < RuleNumbers.AdultAge)
+        {
+            return WorkGroup.Children;
+        }
+        if ((unit.Status & UnitStatus.Mustered) != 0)
+        {
+            return WorkGroup.Other;
+        }
         return unit.AssignedTask switch
         {
             GatherFood or GatherMeat or Fishing or GatherPlants or HuntingTask => WorkGroup.Food,
             GatherWood => WorkGroup.Wood,
             GatherStones => WorkGroup.Stones,
             GatherBones => WorkGroup.Bones,
-            BuildTask or UpgradeTask or SentBuilderTask or WaitForMaterialTask => WorkGroup.Builders,
-            IdleTask when unit.Age >= RuleNumbers.AdultAge && (unit.Status & UnitStatus.Mustered) == 0 => WorkGroup.Idle,
-            _ => null,
+            BuildTask or UpgradeTask or SentBuilderTask or WaitForMaterialTask => StandsIdle(unit) ? WorkGroup.IdleBuilders : WorkGroup.Builders,
+            IdleTask when StandsIdle(unit) => WorkGroup.Idle,
+            _ => WorkGroup.Other,
         };
     }
+
+    /// <summary>
+    /// Whether <paramref name="unit"/> stands with nothing to do: idling (or pausing to idle again,
+    /// as the rules tell an idle unit) on the cell it was going to.
+    /// </summary>
+    private static bool StandsIdle(Unit unit) =>
+        (unit.Action == IdleAction || (unit.Action == PauseAction && unit.SavedAction == IdleAction))
+        && unit.X == unit.DestinationX && unit.Y == unit.DestinationY;
 
     /// <summary>How many of <paramref name="tribe"/>'s villagers outside the buildings are in each group (indexed by <see cref="WorkGroup"/>).</summary>
     public static int[] Counts(GameWorld world, int tribe)
@@ -69,10 +99,7 @@ public static class Workforce
         var counts = new int[Groups];
         foreach (int id in Outside(world, tribe))
         {
-            if (GroupOf(world.Unit(id)) is { } group)
-            {
-                counts[(int)group]++;
-            }
+            counts[(int)GroupOf(world.Unit(id))]++;
         }
         return counts;
     }
