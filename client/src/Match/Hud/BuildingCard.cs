@@ -24,6 +24,9 @@ public static class BuildingCard
     private const int RepairEntry = 26, StopUpgradeEntry = 27, StopRepairEntry = 28;
     private const int DemolishQuestion = 36, NothingToDo = 37, PickAVillager = 34;
 
+    /// <summary>The melee and ranged skill icons, the original's marks of a melee and a thrown weapon.</summary>
+    private const int MeleeIcon = 14, RangedIcon = 15;
+
     /// <summary>A number that changes when anything the card shows changes.</summary>
     public static int Signature(GameWorld world, Building b)
     {
@@ -213,10 +216,13 @@ public static class BuildingCard
         {
             HBoxContainer row = HudPanels.Row(3);
             row.AddChild(HudArt.Icon(HudArt.BarItem(line.Product)));
+            VBoxContainer text = HudPanels.Column(0);
+            text.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             Label name = HudWidgets.Value(GameTexts.Product(line.Product));
-            name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             name.ClipText = true;
-            row.AddChild(name);
+            text.AddChild(name);
+            text.AddChild(ProductFacts(actions.World, line.Product));
+            row.AddChild(text);
             int product = line.Product;
             string id = product.ToString(CultureInfo.InvariantCulture);
             if (line.IsTrap)
@@ -245,6 +251,48 @@ public static class BuildingCard
             part.AddChild(row);
         }
         return part;
+    }
+
+    /// <summary>
+    /// What the original's armoury menu tells of a product: for a weapon the melee or thrown mark
+    /// (the melee and ranged skill icons) and its attack value, then the cost icons and amounts.
+    /// </summary>
+    private static Control ProductFacts(GameWorld world, int product)
+    {
+        HBoxContainer facts = HudPanels.Row(5);
+        facts.Name = "Facts" + product.ToString(CultureInfo.InvariantCulture);
+        facts.MouseFilter = Control.MouseFilterEnum.Pass;
+        var tip = new List<string>();
+        WeaponDisplay? weapon = BuildingOffers.WeaponShown(world, product);
+        if (weapon is not null)
+        {
+            facts.AddChild(IconAndNumber(HudArt.Inline(weapon.IsThrown ? RangedIcon : MeleeIcon), weapon.Attack, null));
+            tip.Add(UiText.T(weapon.IsThrown ? "hud.armoury.thrown" : "hud.armoury.melee"));
+            tip.Add(UiText.F("hud.armoury.attack", weapon.Attack));
+        }
+        IReadOnlyList<int> cost = BuildingOffers.ArmouryCost(world, product);
+        for (int i = 0; i < cost.Count && i < 3; i++)
+        {
+            if (cost[i] > 0)
+            {
+                facts.AddChild(IconAndNumber(HudArt.Cost(i), cost[i], PixelTheme.Variations.Muted));
+            }
+        }
+        string costText = CostText(cost);
+        if (costText.Length > 0)
+        {
+            tip.Add(UiText.F("hud.armoury.cost", costText));
+        }
+        facts.TooltipText = string.Join("  ", tip);
+        return facts;
+    }
+
+    private static Control IconAndNumber(Texture2D icon, int number, string? variation)
+    {
+        HBoxContainer pair = HudPanels.Row(1);
+        pair.AddChild(HudArt.Icon(icon));
+        pair.AddChild(HudWidgets.Value(number.ToString(CultureInfo.InvariantCulture), variation));
+        return pair;
     }
 
     private static Control SanctuaryPart(IMatchActions actions, Building sanctuary)

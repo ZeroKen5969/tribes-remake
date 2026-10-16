@@ -80,6 +80,32 @@ public sealed class WorldLogicTests
     }
 
     [Fact]
+    public void ArmouryFacts_AreWhatTheOriginalsMenuShows()
+    {
+        GameWorld world = Repo.Instance.Started(VillageMission).World;
+        // Club, stone, spear, axe, mace, tomahawk: thrown or not, the attack value and the cost shown.
+        bool[] thrown = { false, true, true, false, false, true };
+        int[][] costs = { new[] { 5, 0, 0 }, new[] { 0, 5, 0 }, new[] { 5, 2, 0 }, new[] { 4, 4, 0 }, new[] { 5, 0, 3 }, new[] { 4, 0, 4 } };
+        for (int weapon = 0; weapon < OrderMenus.FirstTrapProduct; weapon++)
+        {
+            Tribes.Core.Content.Rules.WeaponDisplay? shown = BuildingOffers.WeaponShown(world, weapon);
+            Assert.NotNull(shown);
+            Assert.Equal(thrown[weapon], shown.IsThrown);
+            Assert.Equal(weapon + 2, shown.Attack);
+            Assert.Equal(costs[weapon], BuildingOffers.ArmouryCost(world, weapon));
+        }
+        // Net, spring trap, pit: the cost of their building kind, and no weapon facts.
+        int[][] trapCosts = { new[] { 10, 0, 0 }, new[] { 10, 5, 0 }, new[] { 5, 10, 0 } };
+        for (int trap = 0; trap < trapCosts.Length; trap++)
+        {
+            int product = OrderMenus.FirstTrapProduct + trap;
+            Assert.Null(BuildingOffers.WeaponShown(world, product));
+            Assert.Equal(trapCosts[trap], BuildingOffers.ArmouryCost(world, product));
+        }
+        Assert.Empty(BuildingOffers.ArmouryCost(world, OrderMenus.FirstTrapProduct + trapCosts.Length));
+    }
+
+    [Fact]
     public void FreeFootprints_AreAcceptedAndBlockedOnesRefused()
     {
         GameSimulation game = Repo.Instance.Started(VillageMission);

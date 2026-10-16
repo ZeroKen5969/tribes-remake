@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Tribes.Core.Commands;
+using Tribes.Core.Content.Rules;
 using Tribes.Core.World;
 
 namespace Tribes.Client.MatchPlay.Logic;
@@ -129,6 +130,33 @@ public static class BuildingOffers
             lines.Add(new ArmouryLine(product, pending));
         }
         return lines;
+    }
+
+    /// <summary>
+    /// The wood, stones and bones the original's armoury menu shows for <paramref name="product"/>:
+    /// a weapon's from its display, a trap's from its building kind.
+    /// </summary>
+    public static IReadOnlyList<int> ArmouryCost(GameWorld world, int product)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        if (product >= OrderMenus.FirstTrapProduct)
+        {
+            int kind = RuleNumbers.FirstTrap + product - OrderMenus.FirstTrapProduct;
+            IReadOnlyList<BuildingKind> kinds = world.Content.Rules.Buildings.Kinds;
+            return kind <= RuleNumbers.LastTrap && kind < kinds.Count ? kinds[kind].BuildCost : Array.Empty<int>();
+        }
+        return WeaponShown(world, product)?.Cost ?? Array.Empty<int>();
+    }
+
+    /// <summary>
+    /// Whether the original's armoury menu shows weapon <paramref name="product"/> as thrown, and its
+    /// attack value; null for a trap.
+    /// </summary>
+    public static WeaponDisplay? WeaponShown(GameWorld world, int product)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        IReadOnlyList<WeaponKind> weapons = world.Content.Rules.Weapons.Weapons;
+        return product >= 0 && product < OrderMenus.FirstTrapProduct && product < weapons.Count ? weapons[product].Display : null;
     }
 
     /// <summary>The spells (0, 1, ...) <paramref name="sanctuary"/> casts at its level.</summary>
