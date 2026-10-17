@@ -1,0 +1,25 @@
+# Run: --ui-screen=../match/match --match-mission=2 --match-skip-scenes --session-seed=1 --match-touch --match-touch-dpi=271
+# Select a villager, a hint comes, the OK button closes it: the selection stays (no tap reaches the map).
+until match 900
+until play 200
+wait 20
+tapunit 0
+wait 5
+expect units 1
+cheat hint 1
+wait 5
+expect popup HintDialog
+press OkButton
+wait 10
+expect nopopup
+expect units 1
+cheat hint 1
+wait 5
+press HintsOff
+wait 5
+expect popup HintDialog
+press OkButton
+wait 10
+expect nopopup
+expect units 1
+quit

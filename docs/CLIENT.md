@@ -348,7 +348,7 @@ Godot 4.7.2 .NET 用戶端在 `client/`。本文件說明選單、設定與它�
 | `expect units N｜building｜nothing｜popup 名稱｜nopopup｜applied 指令 [次數]｜control 名稱｜nocontrol 名稱｜scene on/off｜dialogue N｜placing｜tribe N｜mission N｜completed 關卡｜paused on/off｜roster on/off｜minimap on/off｜file 路徑｜nofile 路徑` | 檢查，不成立時 `SCRIPT_FAIL` |
 | `dump`、`dumpunit ID`、`quit` | 印狀態、結束 |
 
-`client/dev/scripts/`（不隨遊戲發佈）有逐一下過 19 種指令（`orders-1`、`orders-2`）、戰役流程與存讀檔（`campaign`）、觸控（`touch`）、改視窗大小（`resize`）、每個面板（`tour`）、劇情（`story`）、結果畫面（`results`、`defeat`）、戰役結尾（`ending`）、讓遊戲停下的面板（`holds`）與第 3 關沒有小地圖（`overview`）的腳本；每個檔案第一行寫著要用的參數。`bash tools/match/check-match.sh [截圖目錄]` 依序跑完所有腳本與建築完整繪製檢查，列出每個的結果（先 `dotnet build client/Tribes.Client.csproj`）。截圖的檔名不含路徑時存到 `--match-script-out=目錄`（預設 `user://script-captures`）。
+`client/dev/scripts/`（不隨遊戲發佈）有逐一下過 19 種指令（`orders-1`、`orders-2`）、戰役流程與存讀檔（`campaign`）、觸控（`touch`）、改視窗大小（`resize`）、每個面板（`tour`）、劇情（`story`）、結果畫面（`results`、`defeat`）、戰役結尾（`ending`）、讓遊戲停下的面板（`holds`）、按提示框的按鈕不會點到地圖（`hint-tap`）與第 3 關沒有小地圖（`overview`）的腳本；每個檔案第一行寫著要用的參數。`bash tools/match/check-match.sh [截圖目錄]` 依序跑完所有腳本與建築完整繪製檢查，列出每個的結果（先 `dotnet build client/Tribes.Client.csproj`）。截圖的檔名不含路徑時存到 `--match-script-out=目錄`（預設 `user://script-captures`）。
 
 ### 限制
 
