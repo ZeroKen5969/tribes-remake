@@ -57,6 +57,28 @@ public sealed class EndlessSessionTests
     }
 
     [Fact]
+    public void Hosted_AWorldTooLargeToSend_TurnsTheJoinerDown_AndTheHostIsTold()
+    {
+        var room = new RoomSettings { Name = "Endless", Mode = RoomMode.Endless, AllowJoinInProgress = true };
+        using var cluster = new SessionCluster(MultiTribeControl.Instance, room, seed: 61, lockstep: new LockstepOptions { MaxSnapshotBytes = 1000 });
+        SessionPeer guest = cluster.AddClient("Guest");
+        cluster.StartMatch(Plan);
+        cluster.RunTicks(100);
+
+        SessionPeer late = cluster.AddClient("Late");
+        cluster.RunUntil(() => late.Client!.Phase == ClientPhase.Ended, "the late player to be turned down");
+        cluster.RunTicks(400);
+
+        Assert.Equal((SessionEndReason.Rejected, RejectReason.WorldTooLarge), (late.Client!.EndReason, late.Client.Rejection));
+        Assert.Null(late.Runner);
+        MatchNotice told = Assert.Single(cluster.HostPeer.Notices, n => n.Kind == MatchNoticeKind.WorldTooLarge);
+        Assert.Equal("Late", told.Detail);
+        Assert.Equal(LocalRole.Player, guest.Runner!.Role);
+        cluster.Settle();
+        cluster.AssertInSync(2, [cluster.HostPeer, guest]);
+    }
+
+    [Fact]
     public void Hosted_PlayersJoinMidGame_TheHostSavesAndResumes_AndHashesStayEqual()
     {
         var room = new RoomSettings { Name = "Endless", Mode = RoomMode.Endless, AllowJoinInProgress = true };

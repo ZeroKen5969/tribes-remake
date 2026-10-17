@@ -25,9 +25,13 @@ public static class SessionText
             MatchNoticeKind.SaveFailed => UiText.F("session.notice.save_failed", notice.Detail),
             MatchNoticeKind.RequestDenied => UiText.T("session.notice.request_denied"),
             MatchNoticeKind.OrderDropped => UiText.T("session.notice.order_dropped"),
+            MatchNoticeKind.WorldTooLarge => UiText.F("session.notice.world_too_large", notice.Player?.Name ?? notice.Detail, LimitMegabytes),
             _ => "",
         };
     }
+
+    /// <summary>The largest world that can be sent to a player, in MB, as the texts say it.</summary>
+    public static string LimitMegabytes => (Tribes.Net.NetProtocol.MaxSnapshotBytes / (1024 * 1024)).ToString(CultureInfo.InvariantCulture);
 
     /// <summary>Why the match stopped, for a dialog.</summary>
     public static string Describe(MatchStop stop)
@@ -42,6 +46,7 @@ public static class SessionText
             StopReason.HostLeft => UiText.T("session.stop.host_left"),
             StopReason.ConnectionLost => UiText.T("session.stop.connection_lost"),
             StopReason.Kicked => UiText.T("session.stop.kicked"),
+            StopReason.WorldTooLarge => UiText.F("session.stop.world_too_large", LimitMegabytes),
             StopReason.Desync when stop.Desync is { } d => UiText.F("session.stop.desync",
                 d.Tick.ToString(CultureInfo.InvariantCulture), Hex(d.ExpectedHash), Hex(d.ReportedHash)),
             _ => UiText.F("session.stop.error", stop.Message),

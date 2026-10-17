@@ -107,6 +107,8 @@ internal sealed class LoopbackCluster : IDisposable
 
     public List<CommandRejectedEventArgs> RejectedCommands { get; } = [];
 
+    public List<WorldTooLargeEventArgs> HostWorldTooLarge { get; } = [];
+
     public List<TestPeer> Clients { get; } = [];
 
     public static void AssertInSync(int minimumOverlap, params HashChainSimulation[] simulations)
@@ -313,5 +315,6 @@ internal sealed class LoopbackCluster : IDisposable
         host.ChatReceived += (_, e) => HostChats.Add(e);
         host.SpeedRequested += (_, e) => SpeedRequests.Add(e);
         host.CommandRejected += (_, e) => RejectedCommands.Add(e);
+        host.WorldTooLarge += (_, e) => HostWorldTooLarge.Add(e);
     }
 }

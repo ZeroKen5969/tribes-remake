@@ -104,6 +104,9 @@ public sealed partial class HostSession : IDisposable
     /// <summary>A player's command was dropped.</summary>
     public event EventHandler<CommandRejectedEventArgs>? CommandRejected;
 
+    /// <summary>The world is too large to send to a player, who was turned down or let go and told why.</summary>
+    public event EventHandler<WorldTooLargeEventArgs>? WorldTooLarge;
+
     /// <summary>Handles network traffic and runs the ticks that are due. Call it every frame.</summary>
     public void Update()
     {
@@ -324,7 +327,16 @@ public sealed partial class HostSession : IDisposable
         }
 
         Guid playerId = SessionShared.PublicId(hello.PlayerId, room.RoomId);
-        AdmitResult admitted = room.Admit(playerId, SessionShared.CleanName(hello.Name), hello.Spectate, hello.PreferredColour);
+        string name = SessionShared.CleanName(hello.Name);
+        if (match is not null && match.MissedBatches(hello.TimelineId, hello.ResumeTick) is null
+            && TooLargeToSend(match, playerId, room.Find(playerId)?.Name ?? name) is { } tooLarge)
+        {
+            // Nobody could take the world in, whoever asks: say so before the room counts the player in.
+            Reject(peer, RejectReason.WorldTooLarge, tooLarge);
+            return;
+        }
+
+        AdmitResult admitted = room.Admit(playerId, name, hello.Spectate, hello.PreferredColour);
         if (admitted.Outcome == AdmitOutcome.Rejected)
         {
             Reject(peer, admitted.Reason, admitted.Message);

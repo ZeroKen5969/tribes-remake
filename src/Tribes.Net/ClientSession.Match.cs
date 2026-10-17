@@ -134,6 +134,13 @@ public sealed partial class ClientSession
             throw new ProtocolException("A snapshot arrived outside a match.");
         }
 
+        if (header.RawLength > options.Lockstep.MaxSnapshotBytes)
+        {
+            Fail(SessionEndReason.WorldTooLarge,
+                $"The world is {header.RawLength} bytes; at most {options.Lockstep.MaxSnapshotBytes} can be taken.");
+            return;
+        }
+
         assembler = new SnapshotAssembler(header, options.Lockstep.MaxSnapshotBytes);
         engine = null;
         earlyBatches.Clear();

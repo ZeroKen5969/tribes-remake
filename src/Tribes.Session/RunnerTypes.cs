@@ -60,6 +60,9 @@ public enum StopReason
 
     /// <summary>The game goes on in another runner (a game played alone was opened to the network).</summary>
     HandedOver,
+
+    /// <summary>The world grew too large for the host to send it to this player again.</summary>
+    WorldTooLarge,
 }
 
 /// <summary>A difference between the host's state and a peer's.</summary>
@@ -120,6 +123,12 @@ public enum MatchNoticeKind
 
     /// <summary>A save asked for with <see cref="IMatchRunner.Save"/> was written.</summary>
     Saved,
+
+    /// <summary>
+    /// The world is too large to send to a player (named in <see cref="MatchNotice.Detail"/>), who
+    /// could not join or come back, or was let go when the state had to be sent again.
+    /// </summary>
+    WorldTooLarge,
 }
 
 /// <summary>A notice for the players.</summary>

@@ -322,6 +322,29 @@ public sealed partial class HostSession
         PublishRoom();
     }
 
+    /// <summary>
+    /// When the world is larger than a snapshot may be, tells the host (<see cref="WorldTooLarge"/>)
+    /// and gives the text for the player; null while it can be sent.
+    /// </summary>
+    private string? TooLargeToSend(HostMatch current, Guid playerId, string playerName)
+    {
+        PackedSnapshot packed = current.TakeSnapshot().Snapshot;
+        int limit = options.Lockstep.MaxSnapshotBytes;
+        if (packed.RawLength <= limit)
+        {
+            return null;
+        }
+
+        WorldTooLarge?.Invoke(this, new WorldTooLargeEventArgs
+        {
+            PlayerId = playerId,
+            PlayerName = playerName,
+            WorldBytes = packed.RawLength,
+            LimitBytes = limit,
+        });
+        return $"The world is {packed.RawLength} bytes; at most {limit} can be sent to a player.";
+    }
+
     /// <summary>Sends the state before the next tick; the batches from that tick on follow as they are made.</summary>
     private static void SendSnapshot(RemotePeer peer, HostMatch current)
     {
@@ -429,7 +452,14 @@ public sealed partial class HostSession
         });
         if (options.Lockstep.ResyncOnDesync && match is not null && peers.ContainsKey(peer.Connection.Id))
         {
-            SendSnapshot(peer, match);
+            if (TooLargeToSend(match, peer.PlayerId, room.Find(peer.PlayerId)?.Name ?? string.Empty) is { } tooLarge)
+            {
+                Drop(peer, SessionEndReason.WorldTooLarge, tooLarge);
+            }
+            else
+            {
+                SendSnapshot(peer, match);
+            }
         }
     }
 

@@ -27,6 +27,7 @@ namespace Tribes.Client.Ui.Dev;
 /// <item><term>--lan-autostart</term><description>lobby host: add computer tribes (--lan-computers=N, default 1) and start the match once --lan-expect people are in</description></item>
 /// <item><term>--lan-mode=endless</term><description>with --lan-host: host an endless room instead of a versus one</description></item>
 /// <item><term>--session-dev-halls</term><description>endless room host: every person's tribe starts with a finished alliance hall (scripted checks)</description></item>
+/// <item><term>--lan-snapshot-limit=BYTES</term><description>debug builds, LAN host: send no world larger than this (to see what players are told when it is too large)</description></item>
 /// <item><term>--lan-ready</term><description>lobby (not the host): mark ready a second after getting a slot</description></item>
 /// <item><term>--lan-expect=N</term><description>lobby: count as settled once N people are in the room</description></item>
 /// <item><term>--lan-quit-after=SECONDS</term><description>quit that many seconds after the lobby opened</description></item>

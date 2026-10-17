@@ -134,6 +134,11 @@ public sealed partial class LobbyConnection : IDisposable
                 Mode = mode,
                 AllowJoinInProgress = mode == RoomMode.Endless,
             },
+            // Debug builds can lower the largest world sent, to see what players are told when it is too large.
+            Lockstep = new LockstepOptions
+            {
+                MaxSnapshotBytes = OS.IsDebugBuild() ? Tribes.Client.Ui.Dev.DevOptions.GetInt("lan-snapshot-limit", NetProtocol.MaxSnapshotBytes) : NetProtocol.MaxSnapshotBytes,
+            },
         }, MatchSimulations.Create);
         MulticastLease.Acquire();
         Current = new LobbyConnection(host, null) { lastRoom = host.Room };
@@ -297,8 +302,10 @@ public sealed partial class LobbyConnection : IDisposable
             RejectReason.GameVersionMismatch or RejectReason.ProtocolMismatch => UiText.T("lobby.end.version"),
             RejectReason.ContentVersionMismatch => UiText.T("lobby.end.content_version"),
             RejectReason.RulesMismatch => UiText.T("lobby.end.rules"),
+            RejectReason.WorldTooLarge => UiText.F("lobby.end.world_too_large", Tribes.Client.Session.SessionText.LimitMegabytes),
             _ => UiText.T("lobby.end.rejected"),
         },
+        SessionEndReason.WorldTooLarge => UiText.F("lobby.end.world_too_large", Tribes.Client.Session.SessionText.LimitMegabytes),
         SessionEndReason.HostClosed => UiText.T("lobby.end.host_closed"),
         SessionEndReason.ConnectionLost => UiText.T("lobby.end.connection_lost"),
         SessionEndReason.Kicked => UiText.T("lobby.end.kicked"),

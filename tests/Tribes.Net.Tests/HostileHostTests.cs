@@ -49,7 +49,7 @@ public sealed class HostileHostTests : IDisposable
     public static TheoryData<string> Attacks =>
     [
         "garbage", "client message", "welcome twice", "match before welcome", "batch in lobby",
-        "chunk without header", "snapshot in lobby", "resume without simulation", "batch gap", "oversized snapshot",
+        "chunk without header", "snapshot in lobby", "resume without simulation", "batch gap",
     ];
 
     [Fact]
@@ -98,14 +98,10 @@ public sealed class HostileHostTests : IDisposable
             case "resume without simulation":
                 Send(new WelcomeMessage(Room(RoomPhase.InGame), RoomExtras.Empty, 5, Guid.NewGuid(), 0));
                 break;
-            case "batch gap":
+            default:
                 Send(new WelcomeMessage(Room(RoomPhase.Lobby), RoomExtras.Empty, -1, Guid.Empty, 0));
                 Send(new MatchBeginMessage(start, 100, Guid.NewGuid()));
                 Send(new BatchMessage(new TickBatch(3, [])));
-                break;
-            default:
-                Send(new WelcomeMessage(Room(RoomPhase.InGame), RoomExtras.Empty, -1, Guid.Empty, 0));
-                Send(new SnapshotBeginMessage(start, 0, 5000, 0, false, 1, 100, false, Guid.NewGuid(), TestData.NoLedger));
                 break;
         }
 
@@ -134,6 +130,19 @@ public sealed class HostileHostTests : IDisposable
         Assert.Equal(("host", "hello"), (chats[0].SenderName, chats[0].Text));
         Assert.Equal(SessionEndReason.Kicked, Assert.Single(ended).Reason);
         Assert.Equal("bye", client.EndMessage);
+    }
+
+    [Fact]
+    public void OversizedSnapshot_EndsTheSession_AsAWorldTooLarge()
+    {
+        Send(new WelcomeMessage(Room(RoomPhase.InGame), RoomExtras.Empty, -1, Guid.Empty, 0));
+        Send(new SnapshotBeginMessage(Start(), 0, 5000, 0, false, 1, 100, false, Guid.NewGuid(), TestData.NoLedger));
+
+        Assert.Equal(ClientPhase.Ended, client.Phase);
+        Assert.Equal(SessionEndReason.WorldTooLarge, client.EndReason);
+        Assert.Contains("5000", client.EndMessage, StringComparison.Ordinal);
+        Assert.Null(client.SnapshotDownload);
+        Assert.Empty(fake.Connections);
     }
 
     [Fact]

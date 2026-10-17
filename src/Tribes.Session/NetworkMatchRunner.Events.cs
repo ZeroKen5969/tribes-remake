@@ -20,6 +20,7 @@ public sealed partial class NetworkMatchRunner
         session.DesyncDetected += OnDesync;
         session.ControlStateChanged += OnControlState;
         session.RoomChanged += OnRoomChanged;
+        session.WorldTooLarge += OnWorldTooLarge;
     }
 
     private void HookClient(ClientSession session)
@@ -174,6 +175,15 @@ public sealed partial class NetworkMatchRunner
         DecideIfOver();
     }
 
+    private void OnWorldTooLarge(object? sender, WorldTooLargeEventArgs e)
+    {
+        if (IsCurrent(sender))
+        {
+            Log($"SESSION world of {e.WorldBytes} bytes too large to send to {e.PlayerName} (limit {e.LimitBytes})");
+            RaiseNotice(new MatchNotice(MatchNoticeKind.WorldTooLarge, Simulation.Tick, Players.ById(e.PlayerId), e.PlayerName));
+        }
+    }
+
     private void OnDesync(object? sender, DesyncDetectedEventArgs e)
     {
         if (!IsCurrent(sender))
@@ -228,6 +238,7 @@ public sealed partial class NetworkMatchRunner
             SessionEndReason.HostClosed => StopReason.HostLeft,
             SessionEndReason.ConnectionLost => StopReason.ConnectionLost,
             SessionEndReason.Kicked => StopReason.Kicked,
+            SessionEndReason.WorldTooLarge => StopReason.WorldTooLarge,
             _ => StopReason.Error,
         };
         StopWith(new MatchStop(reason, Simulation.Tick, $"{e.Reason}: {e.Message}"));

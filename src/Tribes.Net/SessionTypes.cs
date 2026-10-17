@@ -40,6 +40,12 @@ public enum RejectReason
     /// build with the same version numbers but other rules or data, which would not stay in sync.
     /// </summary>
     RulesMismatch = 10,
+
+    /// <summary>
+    /// The running match's world has grown past what can be sent to a joining player
+    /// (<see cref="LockstepOptions.MaxSnapshotBytes"/>).
+    /// </summary>
+    WorldTooLarge = 11,
 }
 
 /// <summary>Why a client session ended.</summary>
@@ -74,6 +80,22 @@ public enum SessionEndReason
     /// <see cref="HostSession"/> passed to <see cref="ClientSession.BecameHost"/>.
     /// </summary>
     BecameHost = 8,
+
+    /// <summary>
+    /// The match's world is larger than a snapshot may be (<see cref="LockstepOptions.MaxSnapshotBytes"/>),
+    /// so the host could not send it again (or this client would not take it).
+    /// </summary>
+    WorldTooLarge = 9,
+}
+
+/// <summary>A snapshot of a running match on its way to this client.</summary>
+/// <param name="ChunksReceived">Pieces received so far.</param>
+/// <param name="Chunks">Pieces in all.</param>
+/// <param name="WorldBytes">The world's size once unpacked.</param>
+public sealed record SnapshotProgress(int ChunksReceived, int Chunks, long WorldBytes)
+{
+    /// <summary>The share received, 0 to 1.</summary>
+    public double Fraction => Chunks <= 0 ? 0 : (double)ChunksReceived / Chunks;
 }
 
 /// <summary>The answer to a lobby or match request.</summary>

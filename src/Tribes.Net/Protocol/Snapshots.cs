@@ -46,16 +46,30 @@ internal static class SnapshotPacker
 {
     private const int CompressFromBytes = 256;
 
+    /// <summary>
+    /// Deflate turns at most 258 bytes into about two bits, so compressed data never expands to more
+    /// than this many times its size (with a little room for the zlib header and tiny inputs).
+    /// </summary>
+    private const int MaxInflateRatio = 1032;
+
+    private const int InflateSlackBytes = 64;
+
     public static PackedSnapshot Pack(byte[] raw, int chunkBytes)
     {
-        byte[] body = raw;
+        ReadOnlyMemory<byte> body = raw;
         bool compressed = false;
+        using var output = new MemoryStream();
         if (raw.Length >= CompressFromBytes)
         {
-            byte[] smaller = Compress(raw);
-            if (smaller.Length < raw.Length)
+            using (var zlib = new ZLibStream(output, CompressionLevel.Fastest, leaveOpen: true))
             {
-                body = smaller;
+                zlib.Write(raw);
+            }
+
+            if (output.Length < raw.Length)
+            {
+                // The chunks are cut from the stream's own buffer: a large world is not copied once more.
+                body = output.GetBuffer().AsMemory(0, (int)output.Length);
                 compressed = true;
             }
         }
@@ -63,7 +77,7 @@ internal static class SnapshotPacker
         var chunks = new List<byte[]>();
         for (int offset = 0; offset < body.Length; offset += chunkBytes)
         {
-            chunks.Add(body.AsSpan(offset, Math.Min(chunkBytes, body.Length - offset)).ToArray());
+            chunks.Add(body.Span.Slice(offset, Math.Min(chunkBytes, body.Length - offset)).ToArray());
         }
 
         if (chunks.Count == 0)
@@ -85,41 +99,109 @@ internal static class SnapshotPacker
         return output.ToArray();
     }
 
-    /// <summary>
-    /// Inflates data that must expand to exactly <paramref name="rawLength"/> bytes. Memory grows
-    /// with the data actually inflated, so a damaged length cannot make it allocate gigabytes.
-    /// </summary>
+    /// <summary>Inflates data that must expand to exactly <paramref name="rawLength"/> bytes.</summary>
     public static byte[] Decompress(byte[] data, int rawLength)
     {
+        using var input = new MemoryStream(data, writable: false);
+        return Inflate(input, data.LongLength, rawLength);
+    }
+
+    /// <summary>
+    /// Inflates <paramref name="compressedLength"/> bytes of <paramref name="input"/> straight into an
+    /// array of <paramref name="rawLength"/> bytes, the only copy of the data made. A length the data
+    /// cannot expand to is refused before anything is allocated, so a damaged length cannot make it
+    /// allocate gigabytes.
+    /// </summary>
+    public static byte[] Inflate(Stream input, long compressedLength, int rawLength)
+    {
+        if (rawLength < 0 || rawLength > (compressedLength * MaxInflateRatio) + InflateSlackBytes)
+        {
+            throw new ProtocolException("A snapshot is shorter than its header says.");
+        }
+
         try
         {
-            using var input = new MemoryStream(data, writable: false);
-            using var zlib = new ZLibStream(input, CompressionMode.Decompress);
-            using var output = new MemoryStream((int)Math.Min(rawLength, 4L * data.Length));
-            var buffer = new byte[81920];
-            int read;
-            while ((read = zlib.Read(buffer)) > 0)
+            using var zlib = new ZLibStream(input, CompressionMode.Decompress, leaveOpen: true);
+            var raw = new byte[rawLength];
+            int filled = 0;
+            while (filled < rawLength)
             {
-                if (output.Length + read > rawLength)
+                int read = zlib.Read(raw, filled, rawLength - filled);
+                if (read == 0)
                 {
-                    throw new ProtocolException("A snapshot is longer than its header says.");
+                    throw new ProtocolException("A snapshot is shorter than its header says.");
                 }
 
-                output.Write(buffer, 0, read);
+                filled += read;
             }
 
-            if (output.Length != rawLength)
+            if (zlib.Read(new byte[1], 0, 1) > 0)
             {
-                throw new ProtocolException("A snapshot is shorter than its header says.");
+                throw new ProtocolException("A snapshot is longer than its header says.");
             }
 
-            return output.ToArray();
+            return raw;
         }
         catch (InvalidDataException ex)
         {
             throw new ProtocolException("A snapshot is not valid compressed data.", ex);
         }
     }
+}
+
+/// <summary>Reads a list of byte blocks one after another as one stream.</summary>
+internal sealed class BlockStream : Stream
+{
+    private readonly IReadOnlyList<ReadOnlyMemory<byte>> blocks;
+    private int block;
+    private int offset;
+
+    public BlockStream(IReadOnlyList<ReadOnlyMemory<byte>> blocks) => this.blocks = blocks;
+
+    public override bool CanRead => true;
+
+    public override bool CanSeek => false;
+
+    public override bool CanWrite => false;
+
+    public override long Length => throw new NotSupportedException();
+
+    public override long Position
+    {
+        get => throw new NotSupportedException();
+        set => throw new NotSupportedException();
+    }
+
+    public override int Read(byte[] buffer, int offset, int count) => Read(buffer.AsSpan(offset, count));
+
+    public override int Read(Span<byte> buffer)
+    {
+        while (block < blocks.Count && offset == blocks[block].Length)
+        {
+            block++;
+            offset = 0;
+        }
+
+        if (block == blocks.Count)
+        {
+            return 0;
+        }
+
+        int count = Math.Min(buffer.Length, blocks[block].Length - offset);
+        blocks[block].Span.Slice(offset, count).CopyTo(buffer);
+        offset += count;
+        return count;
+    }
+
+    public override void Flush()
+    {
+    }
+
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+    public override void SetLength(long value) => throw new NotSupportedException();
+
+    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 }
 
 /// <summary>Collects the chunks of one snapshot in order and checks the result.</summary>
@@ -143,6 +225,9 @@ internal sealed class SnapshotAssembler
     }
 
     public SnapshotBeginMessage Header => header;
+
+    /// <summary>Chunks received so far.</summary>
+    public int Received => received;
 
     /// <summary>Adds the next chunk; true when it was the last one.</summary>
     public bool Add(SnapshotChunkMessage chunk)
@@ -168,17 +253,27 @@ internal sealed class SnapshotAssembler
         return received == header.ChunkCount;
     }
 
+    /// <summary>The snapshot, checked; the chunks are let go so only one copy of a large world stays.</summary>
     public byte[] Complete()
     {
-        var data = new byte[bodyLength];
-        int offset = 0;
-        foreach (ReadOnlyMemory<byte> chunk in chunks)
+        byte[] raw;
+        if (header.Compressed)
         {
-            chunk.Span.CopyTo(data.AsSpan(offset));
-            offset += chunk.Length;
+            using var body = new BlockStream(chunks);
+            raw = SnapshotPacker.Inflate(body, bodyLength, header.RawLength);
+        }
+        else
+        {
+            raw = new byte[bodyLength];
+            int offset = 0;
+            foreach (ReadOnlyMemory<byte> chunk in chunks)
+            {
+                chunk.Span.CopyTo(raw.AsSpan(offset));
+                offset += chunk.Length;
+            }
         }
 
-        byte[] raw = header.Compressed ? SnapshotPacker.Decompress(data, header.RawLength) : data;
+        chunks.Clear();
         if (raw.Length != header.RawLength)
         {
             throw new ProtocolException($"A snapshot has {raw.Length} bytes but its header says {header.RawLength}.");

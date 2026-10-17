@@ -10,7 +10,7 @@ public static class NetProtocol
     /// Version of the wire format. A peer with a different version cannot play with this one; the
     /// host rejects it before anything else is exchanged.
     /// </summary>
-    public const int Version = 2;
+    public const int Version = 3;
 
     /// <summary>TCP port a LAN host listens on unless told otherwise.</summary>
     public const int DefaultLanPort = 47801;
@@ -26,6 +26,12 @@ public static class NetProtocol
 
     /// <summary>Largest game setup a match start can carry (map, seed, options).</summary>
     public const int MaxGameSetupBytes = 256 * 1024;
+
+    /// <summary>
+    /// Largest snapshot of a running match (before compression) the host sends and a client takes:
+    /// a world that grew past it cannot be joined or sent again, and both sides are told so.
+    /// </summary>
+    public const int MaxSnapshotBytes = 256 * 1024 * 1024;
 }
 
 /// <summary>

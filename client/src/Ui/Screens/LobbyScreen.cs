@@ -208,6 +208,13 @@ public partial class LobbyScreen : ScreenBase
             running.Host?.Update();
             running.Client?.Update();
         }
+        if (lobby?.Client?.SnapshotDownload is { } download)
+        {
+            // Joining a running match: a large world takes a while to come in.
+            startHint.Text = UiText.F("lobby.loading_world",
+                ((int)(download.Fraction * 100)).ToString(CultureInfo.InvariantCulture),
+                (download.WorldBytes / (1024.0 * 1024.0)).ToString("0.0", CultureInfo.InvariantCulture));
+        }
         openedSeconds += delta;
         int recolour = DevOptions.GetInt("lan-recolour", -1);
         if (!devRecolourDone && recolour >= 0 && openedSeconds > 2 && lobby?.LocalPlayer is { HasSlot: true })

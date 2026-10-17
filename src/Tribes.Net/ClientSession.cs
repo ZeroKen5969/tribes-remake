@@ -96,6 +96,11 @@ public sealed partial class ClientSession : IDisposable
     /// <summary>The simulation this session drives, or null outside a match.</summary>
     public ILockstepSimulation? Simulation => engine?.Simulation;
 
+    /// <summary>How far the snapshot of a running match has come in, or null while none is on its way.</summary>
+    public SnapshotProgress? SnapshotDownload => assembler is { } coming
+        ? new SnapshotProgress(coming.Received, coming.Header.ChunkCount, coming.Header.RawLength)
+        : null;
+
     /// <summary>Whether the host paused the match.</summary>
     public bool IsPaused { get; private set; }
 

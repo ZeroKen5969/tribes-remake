@@ -132,6 +132,7 @@ host.Resume();
 | `ControlStateChanged` | ✓ | ✓ | 暫停、繼續、改速度 |
 | `SpeedRequested` | ✓ | | 玩家要求改速度 |
 | `CommandRejected` | ✓ | | 丟棄了玩家的指令 |
+| `WorldTooLarge` | ✓ | | 世界太大，無法傳給某位玩家（加入或回來時被拒，或要重新同步時被請出）；帶玩家、世界大小與上限 |
 | `PhaseChanged` | | ✓ | `Connecting → Lobby → InGame`、`Loading`、`Reconnecting`、`Migrating`、`Ended` |
 | `RequestDenied` | | ✓ | 主機拒絕了請求（例如顏色被搶先選走） |
 | `Ended` | | ✓ | 結束；`Reason`、`Rejection`、`Message` 說明原因 |
@@ -202,6 +203,7 @@ host.Resume();
 - **大廳中離開**：欄位釋出。
 - **對局中離開或斷線**：狀態變 `Absent`，主機在下一個批次放入 `PlayerAbsent`；之後以同一個 `PlayerId` 回來就恢復 `Active`，批次中放入 `PlayerReturned`。
 - **中途加入（無盡模式）**：房間設定 `AllowJoinInProgress` 且還有空欄位時，新玩家可以在對局中加入（主機可用 `SetJoinInProgress` 隨時開關，房間列表的 `IsOpen`、`JoinableInProgress` 同步更新）。主機在兩個 tick 之間取快照，送出 `Welcome`、快照，之後的批次照常送；新玩家在那個 tick 的批次裡收到 `PlayerJoined`。對戰模式中途只能以觀戰者加入，其他人以 `MatchInProgress` 被拒。
+  - 世界解開後超過 `MaxSnapshotBytes`（256 MB）時快照送不出去：需要快照的人（新加入、觀戰、批次補不上的重連）在被算進房間之前就以 `RejectReason.WorldTooLarge` 被拒；要重新同步的玩家以 `SessionEndReason.WorldTooLarge` 被請出（狀態變 `Absent`）。兩種情況主機都觸發 `WorldTooLarge`，對局照常進行。
 - **放棄**：`Forfeit()` 之後不可撤回；再次加入同一局只能觀戰。主機也可以放棄或被消滅（`Defeat(slot)` 用於規則判定某部落全滅），之後主機繼續轉發、只是不能下指令，對局照常進行。
 - **自動重連**：對局中連線中斷時，客戶端每隔 `ReconnectDelay`（2 秒）重試，最多 `ReconnectAttempts`（3）次。重連時告訴主機自己的模擬停在哪個 tick；主機若還保留那之後的批次（`BatchHistoryTicks`，預設 1500 個，約 3 分鐘），只補送缺少的批次；否則送新快照。每次開局與每次讀檔續玩都有新的時間線 id，所以主機讀檔重來之後，還停在舊進度的客戶端一定收到新快照，不會接上另一條時間線的批次。
 - **主機離開**：見下一節「主機移轉」。不支援移轉的傳輸（區域網路）上，主機離開就結束這次連線；無盡模式由主機日後讀存檔續玩，其他人再重新加入。
@@ -298,7 +300,7 @@ host.Resume();
 
 ### 快照傳送
 
-快照 256 bytes 以上時以 zlib（RFC 1950，最快等級）壓縮，壓縮後比較小才採用。校驗碼是原始資料的 FNV-1a 32 位元雜湊。資料切成最多 32 KB 一段（`SnapshotChunkBytes`），按序號依序送出；之後緊接著送快照 tick 起的批次。客戶端最多接受 64 MB（`MaxSnapshotBytes`）的快照。
+快照 256 bytes 以上時以 zlib（RFC 1950，最快等級）壓縮，壓縮後比較小才採用。校驗碼是原始資料的 FNV-1a 32 位元雜湊。資料切成最多 32 KB 一段（`SnapshotChunkBytes`），按序號依序送出；之後緊接著送快照 tick 起的批次。快照解開後最多 256 MB（`NetProtocol.MaxSnapshotBytes`，`LockstepOptions.MaxSnapshotBytes` 預設值）：主機不送更大的快照，而是告訴玩家世界太大（見「中途加入」）；客戶端收到更大的快照開頭就以 `SessionEndReason.WorldTooLarge` 結束。客戶端把收到的各段直接解壓進一份剛好大小的陣列，大世界在記憶體裡只多一份。收到多少可以從 `ClientSession.SnapshotDownload` 看（已收段數、總段數、解開後的大小）。
 
 ### 存檔格式
 
@@ -487,5 +489,5 @@ MODE=endless CLIENTS=2 LATE_AT=500 HOST_ARGS="--net-computers=0" bash tools/sess
 - 網際網路對戰透過 Photon 的雲端轉送：每個在看房間清單或在房間裡的裝置算一個同時連線（CCU）。免費方案上限約 20，而且限定開發用途，正式公開前要換付費方案。
 - 不同地區的房間彼此看不到：朋友要選同一個地區，或用帶地區的房間位址（`jp/K7QM2P`）。
 - 主機當機或斷網時，約 3～5 秒後其他人才會接手；這段時間對局停著不動，畫面顯示「主機連線中斷，正在換手…」。主機停住超過 3 秒（例如手機切到背景）也會被換掉，它的玩家要「回到對局」。
-- 中途加入與重新同步每次都傳完整快照，地圖越大越久（已壓縮）。
+- 中途加入與重新同步每次都傳完整快照，地圖越大越久（已壓縮，加入的人在房間畫面看得到進度）。世界解開後超過 256 MB 就無法再讓人加入或重新同步，加入的人與主機都會收到通知。
 - 只有能下指令的玩家能要求暫停或改速度；觀戰者與已放棄的玩家不能。

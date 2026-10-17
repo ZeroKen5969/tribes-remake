@@ -87,6 +87,25 @@ public sealed class DesyncDetectedEventArgs : EventArgs
     public required uint ReportedHash { get; init; }
 }
 
+/// <summary>
+/// The world grew too large to send to a player (<see cref="LockstepOptions.MaxSnapshotBytes"/>): a
+/// player joining or coming back was turned down, or one whose state had to be sent again was let go.
+/// </summary>
+public sealed class WorldTooLargeEventArgs : EventArgs
+{
+    /// <summary>The player.</summary>
+    public required Guid PlayerId { get; init; }
+
+    /// <summary>The player's name.</summary>
+    public required string PlayerName { get; init; }
+
+    /// <summary>The world's size, unpacked.</summary>
+    public required long WorldBytes { get; init; }
+
+    /// <summary>The largest world that can be sent.</summary>
+    public required int LimitBytes { get; init; }
+}
+
 /// <summary>The host turned down a request of this client.</summary>
 public sealed class RequestDeniedEventArgs : EventArgs
 {

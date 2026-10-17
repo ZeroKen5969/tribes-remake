@@ -200,8 +200,11 @@ public sealed record LockstepOptions
     /// <summary>Snapshots are sent in pieces of at most this many bytes.</summary>
     public int SnapshotChunkBytes { get; init; } = 32 * 1024;
 
-    /// <summary>Largest snapshot a client accepts, uncompressed.</summary>
-    public int MaxSnapshotBytes { get; init; } = 64 * 1024 * 1024;
+    /// <summary>
+    /// Largest snapshot, uncompressed: a client takes none larger, and a host does not send one
+    /// larger but tells the player the world is too large.
+    /// </summary>
+    public int MaxSnapshotBytes { get; init; } = NetProtocol.MaxSnapshotBytes;
 
     /// <summary>Largest command payload.</summary>
     public int MaxCommandBytes { get; init; } = 1024;
