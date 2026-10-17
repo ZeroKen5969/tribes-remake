@@ -86,9 +86,10 @@ godot_export() {
   rm -f "$output"
   echo "Exporting \"$preset\" ($mode) to $output (log: $log)"
   local status=0
-  # MSBuild worker processes kept for reuse inherit Godot's output and keep it open, so the export
-  # would not return until they time out; the build runs without them.
-  MSBUILDDISABLENODEREUSE=1 "$GODOT" --headless --path "$(cygpath -m "$CLIENT_DIR")" "--export-$mode" "$preset" "$(cygpath -m "$output")" > "$log" 2>&1 || status=$?
+  # MSBuild worker processes kept for reuse, and the C# compiler server (VBCSCompiler) a build starts
+  # when none runs yet, inherit Godot's output and keep it open, so the export would not return until
+  # they time out (about ten minutes); the build runs without them.
+  MSBUILDDISABLENODEREUSE=1 UseSharedCompilation=false "$GODOT" --headless --path "$(cygpath -m "$CLIENT_DIR")" "--export-$mode" "$preset" "$(cygpath -m "$output")" > "$log" 2>&1 || status=$?
   forget_password_in_log "$log"
   if [ "$status" -ne 0 ]; then
     rm -f "$output"

@@ -16,7 +16,7 @@ config/name_localized={
 "zh_HK": "史前部落",
 "zh_TW": "史前部落"
 }
-config/version="1.0.11"
+config/version="1.0.12"
 run/main_scene="res://scenes/ui/boot.tscn"
 config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
 
