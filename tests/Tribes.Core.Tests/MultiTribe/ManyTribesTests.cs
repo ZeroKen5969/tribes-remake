@@ -9,21 +9,26 @@ using Xunit.Abstractions;
 
 namespace Tribes.Core.Tests.MultiTribe;
 
-/// <summary>Many tribes on one map (custom map 1 has room for 19 camps): the tribe count is bounded only by that room.</summary>
+/// <summary>Many tribes on one map: the tribe count is bounded only by the room the map has for camps.</summary>
 public sealed class ManyTribesTests
 {
-    private const int Tribes = 16, WarmUp = 2000, Measured = 6000;
+    /// <summary>The custom map with the most room for camps.</summary>
+    private const int RoomiestMap = 0;
+
+    private const int WarmUp = 2000, Measured = 6000;
 
     private readonly ITestOutputHelper output;
 
     public ManyTribesTests(ITestOutputHelper output) => this.output = output;
 
     [Fact]
-    public void SixteenComputerTribes_PlayAMatch()
+    public void AMapFullOfComputerTribes_PlaysAMatch()
     {
-        GameSimulation game = GameSimulation.StartMatch(MatchWorlds.Content, MatchWorlds.Setup(1, 16, MatchWorlds.Controllers(0, Tribes)));
-        Assert.Equal(Tribes, game.World.Tribes.Count);
-        Assert.Equal(Tribes, game.World.Tribes.Select(t => t.Camp).Distinct().Count());
+        int tribes = MatchStart.CampCapacity(MatchWorlds.Content, RoomiestMap);
+        Assert.True(tribes > 4, $"room for {tribes} camps");
+        GameSimulation game = GameSimulation.StartMatch(MatchWorlds.Content, MatchWorlds.Setup(RoomiestMap, 16, MatchWorlds.Controllers(0, tribes)));
+        Assert.Equal(tribes, game.World.Tribes.Count);
+        Assert.Equal(tribes, game.World.Tribes.Select(t => t.Camp).Distinct().Count());
         for (int i = 0; i < WarmUp; i++)
         {
             game.Step();
@@ -35,7 +40,7 @@ public sealed class ManyTribesTests
         }
         clock.Stop();
         double rate = Measured / clock.Elapsed.TotalSeconds;
-        output.WriteLine($"{Tribes} computer tribes, {game.World.UnitSlots} unit slots: {rate:F0} ticks/s after {WarmUp} ticks");
+        output.WriteLine($"{tribes} computer tribes, {game.World.UnitSlots} unit slots: {rate:F0} ticks/s after {WarmUp} ticks");
         int alive = game.World.Tribes.Count(t => t[TribeCounter.Population] > 0);
         int fought = game.World.Tribes.Sum(t => t[TribeCounter.UnitsKilled]);
         output.WriteLine($"tribes with people {alive}, kills {fought}, decided {game.Match.IsDecided}");

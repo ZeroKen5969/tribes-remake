@@ -42,7 +42,7 @@ public sealed class EndlessRulesTests
         Assert.Throws<InvalidDataException>(() => (Rules with { Land = Rules.Land with { ReachCells = 0 } }).Checked());
         Assert.Throws<InvalidDataException>(() => (Rules with { Camps = Rules.Camps with { CandidateStep = 0 } }).Checked());
         Assert.Throws<InvalidDataException>(() => (Rules with { NewTribes = Rules.NewTribes with { DistanceFromPeopleCamps = -1 } }).Checked());
-        Assert.Throws<InvalidDataException>(() => (Rules with { Wildlife = Rules.Wildlife with { HabitatChancePercent = 101 } }).Checked());
+        Assert.Throws<InvalidDataException>(() => (Rules with { Wildlife = Rules.Wildlife with { HabitatChancePercent = 401 } }).Checked());
         Assert.Throws<InvalidDataException>(() => (Rules with { Pacing = Rules.Pacing with { AttackersPerTarget = 0 } }).Checked());
         Assert.Throws<InvalidDataException>(() => (Rules with { Alliance = Rules.Alliance with { GoodsCap = 0 } }).Checked());
     }

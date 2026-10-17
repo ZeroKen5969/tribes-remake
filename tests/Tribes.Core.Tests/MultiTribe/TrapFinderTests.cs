@@ -42,7 +42,7 @@ public sealed class TrapFinderTests
     [Fact]
     public void SpottedTrapCodes_RoundTrip_AndAreNoOtherCode()
     {
-        GameWorld world = GameSimulation.StartMatch(MatchWorlds.Content, MatchWorlds.Setup(1, 5, MatchWorlds.Controllers(2, 6))).World;
+        GameWorld world = GameSimulation.StartMatch(MatchWorlds.Content, MatchWorlds.Setup(0, 5, MatchWorlds.Controllers(2, 6))).World;
         foreach (int finder in Enumerable.Range(0, world.Tribes.Count))
         {
             for (int kind = CellCode.FirstTrapKind; kind < CellCode.FirstTrapKind + CellCode.TrapKinds; kind++)
