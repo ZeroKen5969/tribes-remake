@@ -108,6 +108,11 @@ public partial class UiCapture : Node
         ScreenBase? current = ScreenBase.Current;
         GD.Print($"UI_CAPTURE {path} {result} {image.GetWidth()}x{image.GetHeight()} screen={current?.GetType().Name ?? GetTree().CurrentScene?.Name} settled={Settled()}");
         PrintEdges();
+        if (DevOptions.Has("ui-reach"))
+        {
+            // "--ui-reach": whether every button shown can be pressed (UI_REACH lines).
+            UiReach.Print(UiReach.Check(GetTree().Root, UiReach.SafeScreen(GetViewport())), current?.GetType().Name ?? GetTree().CurrentScene?.Name ?? "-");
+        }
         SetProcess(false);
         // "--ui-capture-linger=SECONDS" keeps running a while (another instance may still need this one).
         int linger = DevOptions.GetInt("ui-capture-linger", 0);

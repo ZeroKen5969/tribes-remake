@@ -21,6 +21,7 @@ public partial class MainMenuScreen : ScreenBase
     private readonly List<MenuEntry> entries = new();
     private TextureRect logo = null!;
     private PanelContainer menu = null!;
+    private GridContainer column = null!;
     private Label version = null!;
     private static bool appUpdateShown;
 
@@ -40,8 +41,9 @@ public partial class MainMenuScreen : ScreenBase
 
         menu = new PanelContainer { ThemeTypeVariation = PixelTheme.Variations.Sheet };
         AddChild(menu);
-        var column = new VBoxContainer();
-        column.AddThemeConstantOverride("separation", 0);
+        column = new GridContainer { Columns = 1 };
+        column.AddThemeConstantOverride("v_separation", 0);
+        column.AddThemeConstantOverride("h_separation", 12);
         menu.AddChild(column);
         AddEntry(column, "menu.campaign", () => UiScreens.Go(UiScreens.Campaign));
         AddEntry(column, "menu.custom", () => UiScreens.Go(UiScreens.CustomGame));
@@ -69,7 +71,7 @@ public partial class MainMenuScreen : ScreenBase
         CallDeferred(MethodName.ShowAppUpdateResult);
     }
 
-    private void AddEntry(VBoxContainer column, string key, Action action)
+    private void AddEntry(GridContainer column, string key, Action action)
     {
         var entry = new MenuEntry(key);
         entry.Pressed += action;
@@ -98,6 +100,15 @@ public partial class MainMenuScreen : ScreenBase
         Backdrop.BottomCrop = isPortrait ? 0 : 4;
         Rect2 scene = Backdrop.SceneRect;
         Rect2 sky = Backdrop.SkyRect;
+        Logic.EdgeMargins safe = SafeMargins;
+        version.OffsetRight = -6 - safe.Right;
+        version.OffsetBottom = -3 - safe.Bottom;
+        // Two columns when one is too tall for the screen (a large interface on a small screen).
+        column.Columns = 1;
+        if (menu.GetCombinedMinimumSize().Y > Size.Y - safe.Top - safe.Bottom - 8)
+        {
+            column.Columns = 2;
+        }
         Vector2 menuSize = menu.GetCombinedMinimumSize();
         menuSize.X = Math.Max(menuSize.X, 200);
         menu.Size = menuSize;
@@ -106,16 +117,16 @@ public partial class MainMenuScreen : ScreenBase
             logo.Size = logo.Texture.GetSize();
             const float gap = 8;
             float group = logo.Size.Y + gap + menuSize.Y;
-            float top = MathF.Floor(Math.Max(6, (sky.Size.Y - group) * 0.45f));
+            float top = MathF.Floor(Math.Max(safe.Top + 6, (sky.Size.Y - group) * 0.45f));
             logo.Position = new Vector2(MathF.Floor((Size.X - logo.Size.X) / 2), top);
             menu.Position = new Vector2(MathF.Floor((Size.X - menuSize.X) / 2), top + logo.Size.Y + gap);
             return;
         }
-        float right = Size.X - 16 - menuSize.X;
+        float right = Size.X - Math.Max(16, safe.Right + 8) - menuSize.X;
         float x = Math.Min(right, Math.Max(scene.End.X + 8, right - Math.Max(0, (Size.X - 640) / 4)));
         // In the sky when it is tall enough; otherwise from the top, its foot over the forest to the right of the camp.
         float y = menuSize.Y <= sky.Size.Y - 8 ? (sky.Size.Y - menuSize.Y) / 2 : 4;
-        menu.Position = new Vector2(MathF.Floor(x), MathF.Floor(Math.Max(4, y)));
+        menu.Position = new Vector2(MathF.Floor(x), MathF.Floor(Math.Max(safe.Top + 4, y)));
         float sceneMiddle = scene.Position.X + scene.Size.X / 2;
         Vector2 logoSize = logo.Texture.GetSize();
         bool large = sky.Size.Y >= logoSize.Y * 2 + 140 && sceneMiddle + logoSize.X <= menu.Position.X - 8;

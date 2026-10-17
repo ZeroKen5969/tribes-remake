@@ -1,0 +1,98 @@
+# Run: --ui-window=1560x720 --ui-screen=../match/match --match-mission=2 --match-skip-scenes --session-seed=1 --match-touch --match-touch-dpi=271
+# Every button of the match screen and of each panel can be pressed with a finger: on the screen, inside the room kept
+# from its edges, and not covered by anything (a phone in landscape; tools/match/check-reach.sh also runs it at other sizes).
+until match 600
+until play 3000
+wait 20
+expect reachable
+tapunit 0
+wait 5
+expect reachable
+press DetailsButton
+wait 5
+expect reachable
+press DetailsButton
+press FoldButton
+wait 5
+expect reachable
+press FoldButton
+wait 5
+press MultiSelectButton
+drag 60 120 700 330
+press MultiSelectButton
+wait 5
+expect reachable
+press DeselectButton
+wait 5
+tapbuilding 0
+wait 5
+expect reachable
+tapbuilding 2
+wait 5
+expect reachable
+tapbuilding 3
+wait 5
+expect reachable
+tapbuilding 4
+wait 5
+expect reachable
+tapbuilding 6
+wait 5
+expect reachable
+press DeselectButton
+wait 5
+press BuildButton
+wait 10
+expect reachable
+press Build0
+until placing 60
+expect reachable
+press CancelButton
+wait 5
+press ArmyButton
+wait 10
+expect reachable
+key Escape
+press RosterButton
+wait 10
+expect reachable
+key Escape
+press MenuButton
+wait 10
+expect reachable
+press SaveChoice
+wait 10
+expect reachable
+key Escape
+wait 5
+press LoadChoice
+wait 10
+expect reachable
+key Escape
+wait 5
+press SettingsChoice
+wait 10
+expect reachable
+key Escape
+wait 5
+press HelpChoice
+wait 10
+expect reachable
+key Escape
+wait 5
+press ObjectiveChoice
+wait 10
+expect reachable
+key Escape
+wait 5
+key Escape
+wait 5
+cheat hint 4
+wait 10
+expect popup HintDialog
+expect reachable
+key Escape
+wait 5
+cheat win
+until results 3000
+expect reachable

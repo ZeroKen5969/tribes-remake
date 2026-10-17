@@ -1,0 +1,10 @@
+        <!-- tribes-platform: shares downloaded update APKs with the system installer (UpdateInstaller). -->
+        <provider
+            android:name="com.prehistoric.tribes.platform.UpdateFileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/tribes_update_paths" />
+        </provider>

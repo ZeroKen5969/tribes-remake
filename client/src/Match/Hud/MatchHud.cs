@@ -1,7 +1,9 @@
 using System;
 using Godot;
+using Tribes.Client.App;
 using Tribes.Client.MatchPlay.Logic;
 using Tribes.Client.Ui.Art;
+using Tribes.Client.Ui.Logic;
 using Tribes.Client.Ui.Widgets;
 
 namespace Tribes.Client.MatchPlay.Hud;
@@ -21,7 +23,7 @@ public partial class MatchHud : CanvasLayer
     private readonly BoxMark selectionBox = new() { Name = "SelectionBox", MouseFilter = Control.MouseFilterEnum.Ignore };
     private HudPopup? popup;
     private bool minimapShown = true;
-    private Vector2 laidOutFor;
+    private Rect2 laidOutIn;
     private int laidOutButton;
     private bool laidOutPortrait, laidOutTouch;
 
@@ -144,8 +146,12 @@ public partial class MatchHud : CanvasLayer
         root.AddChild(Dialogs);
         Dialogs.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         root.Resized += Relayout;
+        GameApp.Instance.SafeMarginsChanged += OnSafeMarginsChanged;
         Relayout();
     }
+
+    /// <inheritdoc/>
+    public override void _ExitTree() => GameApp.Instance.SafeMarginsChanged -= OnSafeMarginsChanged;
 
     /// <summary>The layer panels are added to.</summary>
     private Control PopupLayer => root.GetNode<Control>("Popups");
@@ -214,7 +220,21 @@ public partial class MatchHud : CanvasLayer
         Players.Visible = !scene && actions.Runner.IsNetwork;
     }
 
-    /// <summary>Lays everything out again when the window or the interface sizes changed.</summary>
+    /// <summary>Rebuilds the big buttons (what the player may do changed, or the language) and lays everything out again.</summary>
+    public void RefreshCommands()
+    {
+        forceCommands = true;
+        Relayout();
+    }
+
+    private bool forceCommands;
+
+    /// <summary>
+    /// Lays everything out again when the window, the interface sizes or the room kept from the
+    /// screen's edges changed. Everything the player presses stays inside that room
+    /// (<see cref="GameApp.SafeMargins"/>: cut-outs, rounded corners and the player's setting);
+    /// the map and the story scene still fill the whole screen.
+    /// </summary>
     public void Relayout()
     {
         if (root is null || !root.IsInsideTree())
@@ -223,43 +243,62 @@ public partial class MatchHud : CanvasLayer
         }
         HudMetrics m = actions.Metrics;
         Vector2 size = root.Size;
-        if (size != laidOutFor || m.Button != laidOutButton || m.Portrait != laidOutPortrait || m.Touch != laidOutTouch)
+        Rect2 area = SafeArea(size);
+        if (area != laidOutIn || m.Button != laidOutButton || m.Portrait != laidOutPortrait || m.Touch != laidOutTouch)
         {
-            laidOutFor = size;
+            laidOutIn = area;
             laidOutButton = m.Button;
             laidOutPortrait = m.Portrait;
             laidOutTouch = m.Touch;
             Top.Arrange(m);
             Workers.Arrange(m);
-            Commands.Arrange(m, vertical: !m.Portrait);
-            Commands.SetToggled(HudCommand.Minimap, minimapShown);
         }
         if (m.Portrait)
         {
-            LayOutPortrait(m, size);
+            LayOutPortrait(m, size, area);
         }
         else
         {
-            LayOutLandscape(m, size);
+            LayOutLandscape(m, size, area);
         }
+        forceCommands = false;
+        Commands.SetToggled(HudCommand.Minimap, minimapShown);
         Popup?.Place(FreeArea);
         Scene.Size = size;
+        Scene.SafeArea = area;
         Scene.Arrange();
         LaidOut?.Invoke();
     }
 
-    private void LayOutLandscape(HudMetrics m, Vector2 size)
+    /// <summary>The part of a screen of <paramref name="size"/> inside the room kept from its edges.</summary>
+    private static Rect2 SafeArea(Vector2 size)
+    {
+        EdgeMargins margins = GameApp.Instance.SafeMargins;
+        float width = Mathf.Max(size.X - margins.Left - margins.Right, size.X / 2);
+        float height = Mathf.Max(size.Y - margins.Top - margins.Bottom, size.Y / 2);
+        return new Rect2(Mathf.Min(margins.Left, size.X - width), Mathf.Min(margins.Top, size.Y - height), width, height);
+    }
+
+    private void OnSafeMarginsChanged() => CallDeferred(MethodName.Relayout);
+
+    private void LayOutLandscape(HudMetrics m, Vector2 size, Rect2 area)
     {
         int gap = m.Gap;
-        float strip = m.Button + (2 * gap);
         float top = m.TopBar;
-        Place(Top, new Rect2(0, 0, size.X - (m.Touch ? strip : 0), top));
-        Place(Commands, new Rect2(size.X - strip + gap, m.Touch ? gap : top + gap, m.Button, size.Y - (m.Touch ? 0 : top) - (2 * gap)));
-        float right = size.X - strip;
-        float mapWidth = right;
+        float left = area.Position.X, bottom = area.End.Y;
+        float barBottom = area.Position.Y + top;
+        // With a finger the column runs the whole height beside the top bar; with a mouse under it.
+        float columnTop = m.Touch ? area.Position.Y + gap : barBottom + gap;
+        float columnLength = bottom - gap - columnTop;
+        Commands.Arrange(m, vertical: true, columnLength, forceCommands);
+        float strip = Commands.Thickness + (2 * gap);
+        float right = area.End.X - strip;
+        float mapWidth = right - left;
+        Place(Top, new Rect2(left, area.Position.Y, area.Size.X - (m.Touch ? strip : 0), top));
+        Place(Commands, new Rect2(right + gap, columnTop, Commands.Thickness, columnLength));
         float miniWidth = Mathf.Clamp(mapWidth * 0.24f, 96, 170);
         float miniHeight = Mathf.Round(miniWidth * 0.75f);
-        Place(minimapFrame, new Rect2(right - miniWidth - gap, top + gap, miniWidth, miniHeight));
+        Place(minimapFrame, new Rect2(right - miniWidth - gap, barBottom + gap, miniWidth, miniHeight));
         // Wide enough for a villager's orders on one line beside the cross, also with big touch buttons.
         float panelWidth = Mathf.Min(Mathf.Max(Mathf.Clamp(mapWidth * 0.42f, 200, 320), Context.OrdersWidth(m)), mapWidth - (2 * gap));
         if (Context.Folded)
@@ -267,77 +306,84 @@ public partial class MatchHud : CanvasLayer
             // The folded tab is only as wide as its face, name and buttons.
             panelWidth = Mathf.Min(panelWidth, Context.FoldedWidth);
         }
-        float panelHeightMax = size.Y - top - (3 * gap);
+        float feedWidth = Mathf.Max(120, mapWidth - miniWidth - (4 * gap));
+        float feedTop = PlaceWorkers(left + gap, barBottom + gap, mapWidth - miniWidth - (3 * gap));
+        Place(Messages, new Rect2(left + (gap * 2), feedTop, Mathf.Min(feedWidth, 360), 0));
+        // The panel grows up to the head counts, never over them (its card scrolls instead).
+        float panelHeightMax = bottom - feedTop;
         Context.CustomMinimumSize = new Vector2(panelWidth, 0);
         Context.Size = new Vector2(panelWidth, 0);
         float panelHeight = Mathf.Min(panelHeightMax, Context.WantedHeight);
-        Place(Context, new Rect2(gap, size.Y - panelHeight - gap, panelWidth, panelHeight));
-        float feedWidth = Mathf.Max(120, right - miniWidth - (4 * gap));
-        float feedTop = PlaceWorkers(gap, top, right - miniWidth - (3 * gap));
-        Place(Messages, new Rect2(gap * 2, feedTop, Mathf.Min(feedWidth, 360), 0));
-        PlacePlayers(right - gap, top + gap, miniWidth, miniHeight + gap);
-        Place(Placement, LandscapePlacementBar(m, mapWidth, size.Y, panelWidth, panelHeight));
-        Place(Banner, new Rect2(0, top + 2, mapWidth, 14));
-        Place(notes, new Rect2(0, top, mapWidth, size.Y - top));
-        Insets = new ScreenInsets(0, top, strip, Context.Visible ? panelHeight + gap : 0);
-        FreeArea = new Rect2(0, top, mapWidth, size.Y - top);
+        Place(Context, new Rect2(left + gap, bottom - panelHeight - gap, panelWidth, panelHeight));
+        PlacePlayers(right - gap, barBottom + gap, miniWidth, miniHeight + gap);
+        Place(Placement, LandscapePlacementBar(m, left, mapWidth, bottom, panelWidth, panelHeight));
+        Place(Banner, new Rect2(left, barBottom + 2, mapWidth, 14));
+        Place(notes, new Rect2(left, barBottom, mapWidth, bottom - barBottom));
+        Insets = new ScreenInsets(left, barBottom, size.X - right, Context.Visible ? size.Y - (bottom - panelHeight - gap) : size.Y - bottom);
+        FreeArea = new Rect2(left, barBottom, mapWidth, bottom - barBottom);
     }
 
     /// <summary>
-    /// Puts the head counts under the top bar's left end, in rows that fit in
-    /// <paramref name="room"/> (left of the minimap); returns where the message list starts below them.
+    /// Puts the head counts at (<paramref name="x"/>, <paramref name="y"/>) under the top bar's left
+    /// end, in rows that fit in <paramref name="room"/> (left of the minimap); returns where the
+    /// message list starts below them.
     /// </summary>
-    private float PlaceWorkers(int gap, float top, float room)
+    private float PlaceWorkers(float x, float y, float room)
     {
         Workers.FitWidth(room);
         Vector2 wanted = Workers.WantedSize;
-        Place(Workers, new Rect2(gap, top + gap, wanted.X, wanted.Y));
-        return Workers.Visible ? top + gap + wanted.Y + gap : top + gap;
+        Place(Workers, new Rect2(x, y, wanted.X, wanted.Y));
+        return Workers.Visible ? y + wanted.Y + actions.Metrics.Gap : y;
     }
 
     /// <summary>
-    /// Where the placing bar goes in landscape: centred at the bottom of the map, beside the
-    /// selection panel when that is open, or above it when there is no room beside it.
+    /// Where the placing bar goes in landscape: centred at the bottom of the map part (from
+    /// <paramref name="mapLeft"/>, <paramref name="mapWidth"/> wide, down to <paramref name="bottom"/>),
+    /// beside the selection panel when that is open, or above it when there is no room beside it.
     /// </summary>
-    private Rect2 LandscapePlacementBar(HudMetrics m, float mapWidth, float height, float panelWidth, float panelHeight)
+    private Rect2 LandscapePlacementBar(HudMetrics m, float mapLeft, float mapWidth, float bottom, float panelWidth, float panelHeight)
     {
         const float Widest = 340, Narrowest = 200;
         int gap = m.Gap;
         float wanted = Placement.WantedHeight;
-        float left = Context.Visible ? panelWidth + (2 * gap) : gap;
-        float room = mapWidth - left - gap;
+        float left = mapLeft + (Context.Visible ? panelWidth + (2 * gap) : gap);
+        float room = mapLeft + mapWidth - left - gap;
         if (room >= Narrowest)
         {
             float width = Mathf.Min(room, Widest);
-            float x = Mathf.Max(left, (mapWidth - width) / 2);
-            return new Rect2(x, height - wanted - gap, width, wanted);
+            float x = Mathf.Max(left, mapLeft + ((mapWidth - width) / 2));
+            return new Rect2(x, bottom - wanted - gap, width, wanted);
         }
-        return new Rect2(gap, height - panelHeight - wanted - (2 * gap), Mathf.Min(panelWidth, Widest), wanted);
+        return new Rect2(mapLeft + gap, bottom - panelHeight - wanted - (2 * gap), Mathf.Min(panelWidth, Widest), wanted);
     }
 
-    private void LayOutPortrait(HudMetrics m, Vector2 size)
+    private void LayOutPortrait(HudMetrics m, Vector2 size, Rect2 area)
     {
         int gap = m.Gap;
         float top = m.TopBar;
-        float bar = m.Button + (2 * gap);
-        Place(Top, new Rect2(0, 0, size.X, top));
-        Place(Commands, new Rect2(gap, size.Y - bar + gap, size.X - (2 * gap), m.Button));
-        float panelWidth = Context.Folded ? Mathf.Min(size.X - (2 * gap), Context.FoldedWidth) : size.X - (2 * gap);
+        float left = area.Position.X, right = area.End.X, bottom = area.End.Y, width = area.Size.X;
+        float barBottom = area.Position.Y + top;
+        Place(Top, new Rect2(left, area.Position.Y, width, top));
+        Commands.Arrange(m, vertical: false, width - (2 * gap), forceCommands);
+        float bar = Commands.Thickness + (2 * gap);
+        Place(Commands, new Rect2(left + gap, bottom - bar + gap, width - (2 * gap), Commands.Thickness));
+        float panelWidth = Context.Folded ? Mathf.Min(width - (2 * gap), Context.FoldedWidth) : width - (2 * gap);
         Context.CustomMinimumSize = new Vector2(panelWidth, 0);
         Context.Size = new Vector2(panelWidth, 0);
-        float panelHeight = Mathf.Min(size.Y * 0.42f, Context.WantedHeight);
-        Place(Context, new Rect2(gap, size.Y - bar - panelHeight, panelWidth, panelHeight));
-        float miniWidth = Mathf.Clamp(size.X * 0.36f, 96, 170);
+        float panelHeight = Mathf.Min(area.Size.Y * 0.42f, Context.WantedHeight);
+        Place(Context, new Rect2(left + gap, bottom - bar - panelHeight, panelWidth, panelHeight));
+        float miniWidth = Mathf.Clamp(width * 0.36f, 96, 170);
         float miniHeight = Mathf.Round(miniWidth * 0.75f);
-        Place(minimapFrame, new Rect2(size.X - miniWidth - gap, top + gap, miniWidth, miniHeight));
-        Place(Messages, new Rect2(gap * 2, PlaceWorkers(gap, top, size.X - miniWidth - (3 * gap)), size.X - miniWidth - (5 * gap), 0));
-        PlacePlayers(size.X - gap, top + gap, miniWidth, miniHeight + gap);
+        Place(minimapFrame, new Rect2(right - miniWidth - gap, barBottom + gap, miniWidth, miniHeight));
+        float feedTop = PlaceWorkers(left + gap, barBottom + gap, width - miniWidth - (3 * gap));
+        Place(Messages, new Rect2(left + (gap * 2), feedTop, width - miniWidth - (5 * gap), 0));
+        PlacePlayers(right - gap, barBottom + gap, miniWidth, miniHeight + gap);
         float above = bar + (Context.Visible ? panelHeight : 0);
-        Place(Placement, new Rect2(gap, size.Y - above - Placement.WantedHeight - gap, size.X - (2 * gap), Placement.WantedHeight));
-        Place(Banner, new Rect2(0, top + 2, size.X, 14));
-        Place(notes, new Rect2(0, top, size.X, size.Y - top - bar));
-        Insets = new ScreenInsets(0, top, 0, above);
-        FreeArea = new Rect2(0, top, size.X, size.Y - top - bar);
+        Place(Placement, new Rect2(left + gap, bottom - above - Placement.WantedHeight - gap, width - (2 * gap), Placement.WantedHeight));
+        Place(Banner, new Rect2(left, barBottom + 2, width, 14));
+        Place(notes, new Rect2(left, barBottom, width, bottom - barBottom - bar));
+        Insets = new ScreenInsets(left, barBottom, size.X - right, size.Y - bottom + above);
+        FreeArea = new Rect2(left, barBottom, width, bottom - barBottom - bar);
     }
 
     /// <summary>

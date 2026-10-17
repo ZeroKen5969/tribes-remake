@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Folders UpdateFileProvider may share. Godot's user:// is Context.getFilesDir() on Android, and
+  Tribes.Update keeps the downloaded APK in user://updates/app/.
+-->
+<paths>
+    <files-path name="updates" path="updates/app/" />
+</paths>

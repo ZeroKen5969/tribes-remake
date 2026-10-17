@@ -3,6 +3,7 @@ using Godot;
 using Tribes.Client.Audio;
 using Tribes.Client.Platform;
 using Tribes.Client.Ui.Dev;
+using Tribes.Client.Ui.Logic;
 using Tribes.Client.Ui.Text;
 using Tribes.Core.Content;
 using Tribes.Update;
@@ -44,6 +45,15 @@ public partial class GameApp : Node
     /// <summary>The match the menus ask for; the match screen reads it when it opens.</summary>
     public MatchRequest? Match { get; set; }
 
+    /// <summary>
+    /// The room, in logical pixels, every screen keeps between its buttons and the screen's edges:
+    /// what camera cut-outs and rounded corners need, plus the player's <see cref="GameSettings.EdgeMargin"/>.
+    /// </summary>
+    public EdgeMargins SafeMargins { get; private set; }
+
+    /// <summary><see cref="SafeMargins"/> changed (the screens lay themselves out again).</summary>
+    public event Action? SafeMarginsChanged;
+
     /// <inheritdoc/>
     public override void _EnterTree()
     {
@@ -66,6 +76,7 @@ public partial class GameApp : Node
     public override void _Ready()
     {
         GetTree().Root.SizeChanged += FitPixelScale;
+        Ui.TouchScrolling.Install(GetTree());
         ApplySettings();
         // Development screenshots of any scene ("--ui-capture=PATH", see Ui/Dev/UiCapture.cs).
         UiCapture.Install(GetTree().Root);
@@ -201,6 +212,37 @@ public partial class GameApp : Node
         root.ContentScaleFactor = scale;
         // Positions centred in a logical size that ends in a fraction land on whole screen pixels.
         root.Snap2DTransformsToPixel = true;
+        RefreshSafeMargins();
+        if (size != fittedFor)
+        {
+            fittedFor = size;
+            // After the screen turns, Android may tell the new cut-outs and corners a moment later.
+            foreach (double seconds in SafeMarginRechecks)
+            {
+                GetTree().CreateTimer(seconds).Timeout += RefreshSafeMargins;
+            }
+        }
+    }
+
+    private static readonly double[] SafeMarginRechecks = [0.3, 1.0];
+    private Vector2I fittedFor;
+    private bool safeMarginsKnown;
+
+    /// <summary>Works out <see cref="SafeMargins"/> for the window as it is now and tells the screens when it changed.</summary>
+    private void RefreshSafeMargins()
+    {
+        Window root = GetTree().Root;
+        Vector2I window = root.Size;
+        EdgeMargins margins = Ui.Logic.SafeMargins.Combine(ScreenShape.Cutouts(window), ScreenShape.Corners(window),
+            root.ContentScaleFactor, Math.Clamp(Settings.EdgeMargin, 0, Ui.Logic.SafeMargins.PlayerChoices[^1]));
+        if (margins == SafeMargins && safeMarginsKnown)
+        {
+            return;
+        }
+        safeMarginsKnown = true;
+        SafeMargins = margins;
+        GD.Print($"SAFE_MARGINS left={margins.Left} top={margins.Top} right={margins.Right} bottom={margins.Bottom} window={window.X}x{window.Y} scale={root.ContentScaleFactor}");
+        SafeMarginsChanged?.Invoke();
     }
 
     /// <summary>Logical pixels wanted on the short side of the screen.</summary>

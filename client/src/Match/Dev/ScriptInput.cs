@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Godot;
 
 namespace Tribes.Client.MatchPlay.Dev;
@@ -86,6 +87,31 @@ public static class ScriptInput
         {
             Godot.Input.ParseInputEvent(new InputEventMouseButton { Position = b, GlobalPosition = b, ButtonIndex = MouseButton.Left, Pressed = false });
         }
+    }
+
+    /// <summary>
+    /// A drag like a person's, spread over frames: the press, then <paramref name="frames"/> moves
+    /// (one a frame), then the release; each step is sent when the caller runs it.
+    /// </summary>
+    public static List<System.Action> SlowDrag(Node context, Vector2 from, Vector2 to, bool touch, int frames)
+    {
+        Vector2 a = ToWindow(context, from), b = ToWindow(context, to);
+        int count = System.Math.Max(1, frames);
+        var steps = new List<System.Action>();
+        steps.Add(() => Godot.Input.ParseInputEvent(touch
+            ? new InputEventScreenTouch { Index = 0, Position = a, Pressed = true }
+            : new InputEventMouseButton { Position = a, GlobalPosition = a, ButtonIndex = MouseButton.Left, Pressed = true, ButtonMask = MouseButtonMask.Left }));
+        for (int i = 1; i <= count; i++)
+        {
+            Vector2 last = a.Lerp(b, (i - 1) / (float)count), p = a.Lerp(b, i / (float)count);
+            steps.Add(() => Godot.Input.ParseInputEvent(touch
+                ? new InputEventScreenDrag { Index = 0, Position = p, Relative = p - last }
+                : new InputEventMouseMotion { Position = p, GlobalPosition = p, Relative = p - last, ButtonMask = MouseButtonMask.Left }));
+        }
+        steps.Add(() => Godot.Input.ParseInputEvent(touch
+            ? new InputEventScreenTouch { Index = 0, Position = b, Pressed = false }
+            : new InputEventMouseButton { Position = b, GlobalPosition = b, ButtonIndex = MouseButton.Left, Pressed = false }));
+        return steps;
     }
 
     /// <summary>Presses and lets go of the key named <paramref name="name"/> ("B", "Escape", "Space", "Ctrl+1", "Alt+Enter").</summary>

@@ -71,6 +71,10 @@ public partial class MatchScreen
                 hud.Note(Tribes.Client.Ui.Text.UiText.T("hud.note.box"));
             }
         };
+        // While placing, a finger put on the ghost drags it instead of the map.
+        gestures.Grabs = GrabsGhost;
+        gestures.GrabMoved += MoveGrabbedGhost;
+        gestures.GrabReleased += ReleaseGrabbedGhost;
     }
 
     /// <summary>Whether the story scene (or a result) keeps the map from taking input.</summary>

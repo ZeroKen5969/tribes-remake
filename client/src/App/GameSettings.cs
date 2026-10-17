@@ -23,6 +23,12 @@ public sealed class GameSettings
     /// <summary>Extra interface scale on top of the automatic one (1, 2 or 3).</summary>
     public int InterfaceScale { get; set; } = 1;
 
+    /// <summary>
+    /// Extra room, in logical pixels, the interface keeps from every screen edge on top of what the
+    /// screen's cut-outs and rounded corners need (one of <see cref="Ui.Logic.SafeMargins.PlayerChoices"/>).
+    /// </summary>
+    public int EdgeMargin { get; set; }
+
     /// <summary>Whether hints are shown during play.</summary>
     public bool ShowHints { get; set; } = true;
 

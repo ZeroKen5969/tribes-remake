@@ -73,6 +73,15 @@ public partial class MatchScript : Node
         {
             return;
         }
+        if (pendingInput.Count > 0)
+        {
+            pendingInput.Dequeue()();
+            if (pendingInput.Count == 0)
+            {
+                waitFrames = 2;
+            }
+            return;
+        }
         if (waitFrames > 0)
         {
             waitFrames--;
@@ -164,7 +173,7 @@ public partial class MatchScript : Node
     private void Run(ScriptLine line)
     {
         MatchScreen? screen = MatchScreen.Current is { IsOpen: true } s ? s : null;
-        if (line.Command == "press" && !ReferenceEquals(centring, line))
+        if (line.Command is "press" or "dragfrom" && !ReferenceEquals(centring, line))
         {
             // A control scrolled out of its list is scrolled into view first.
             centring = line;
@@ -211,6 +220,23 @@ public partial class MatchScript : Node
                 break;
             case "drag":
                 ScriptInput.Drag(this, line.Point(0), line.Point(2), Touch(screen));
+                break;
+            case "slowdrag":
+                QueueDrag(screen, ToGodot(line.Point(0)), ToGodot(line.Point(2)), line.Args.Count > 4 ? line.Int(4) : SlowDragFrames);
+                break;
+            case "dragghost":
+                // By whole cells: the ghost should end exactly that many cells away.
+                Vector2 ghost = GhostOnScreen(Need(screen));
+                Vector2 by = new Vector2(line.Int(0) * WorldView.CellWidth, line.Int(1) * WorldView.CellHeight) * Need(screen).CameraRig.Zoom;
+                QueueDrag(screen, ghost, ghost + by, line.Args.Count > 2 ? line.Int(2) : SlowDragFrames);
+                break;
+            case "dragfrom":
+                Control from = FindControl(line.Args[0]) ?? throw new InvalidOperationException($"no control {line.Args[0]}");
+                QueueDrag(screen, from.GetGlobalRect().GetCenter(), new Vector2(line.Int(1), line.Int(2)), line.Args.Count > 3 ? line.Int(3) : SlowDragFrames);
+                break;
+            case "markghost":
+                markedGhost = Need(screen).GhostOrigin;
+                GD.Print($"SCRIPT ghost at {markedGhost.X},{markedGhost.Y}");
                 break;
             case "tapcell":
             case "rclickcell":
@@ -294,6 +320,10 @@ public partial class MatchScript : Node
             case "dump":
                 Dump(screen);
                 break;
+            case "reach":
+                // Lists the buttons that cannot be pressed without failing the script.
+                UiReach.Print(UiReach.Check(GetTree().Root, UiReach.SafeScreen(GetViewport())), line.Args.Count > 0 ? line.Args[0] : $"line{index}");
+                break;
             case "skipscenes":
                 MatchDev.SkipScenes = line.Args[0] == "on";
                 break;
@@ -371,6 +401,9 @@ public partial class MatchScript : Node
             "minimap" => Need(screen).Hud.MinimapShown == (line.Args[1] == "on"),
             "file" => Godot.FileAccess.FileExists(line.Args[1]),
             "nofile" => !Godot.FileAccess.FileExists(line.Args[1]),
+            // The ghost moved this many cells since "markghost".
+            "ghostshift" => Need(screen).GhostOrigin.X - markedGhost.X == line.Int(1) && Need(screen).GhostOrigin.Y - markedGhost.Y == line.Int(2),
+            "reachable" => UiReach.Print(UiReach.Check(GetTree().Root, UiReach.SafeScreen(GetViewport())), $"line{index}"),
             _ => throw new FormatException($"unknown expectation {what}"),
         };
         if (!ok)
@@ -484,6 +517,34 @@ public partial class MatchScript : Node
     }
 
     private ScriptLine? centring;
+
+    /// <summary>Frames a slow drag takes when the line does not say.</summary>
+    private const int SlowDragFrames = 12;
+
+    /// <summary>The input steps of a slow drag still to send, one a frame.</summary>
+    private readonly Queue<Action> pendingInput = new();
+
+    private Tribes.Core.Content.GridPoint markedGhost;
+
+    private void QueueDrag(MatchScreen? screen, Vector2 from, Vector2 to, int frames)
+    {
+        GD.Print($"SCRIPT drag {from.X:0},{from.Y:0} -> {to.X:0},{to.Y:0} over {frames} frames");
+        foreach (Action step in ScriptInput.SlowDrag(this, from, to, Touch(screen), frames))
+        {
+            pendingInput.Enqueue(step);
+        }
+    }
+
+    private static Vector2 ToGodot(System.Numerics.Vector2 point) => new(point.X, point.Y);
+
+    /// <summary>The middle of the ghost being placed, on the screen.</summary>
+    private static Vector2 GhostOnScreen(MatchScreen screen)
+    {
+        int kind = screen.PlacingKind ?? throw new InvalidOperationException("not placing");
+        (int width, int height) = FootprintCheck.Size(screen.World, kind);
+        Tribes.Core.Content.GridPoint origin = screen.GhostOrigin;
+        return screen.CameraRig.MapToScreen(new Vector2((origin.X + (width / 2f)) * WorldView.CellWidth, (origin.Y + (height / 2f)) * WorldView.CellHeight));
+    }
 
     private static bool IsInput(string command) => command is "tap" or "dtap" or "rclick" or "drag" or "tapcell" or "rclickcell"
         or "dtapcell" or "tapmap" or "rclickmap" or "tapunit" or "tapbuilding" or "hoverbuilding" or "tapevictable" or "press" or "key"

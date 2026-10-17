@@ -109,6 +109,92 @@ public partial class MatchScreen
         hud.Relayout();
     }
 
+    /// <inheritdoc/>
+    public void DragPlacement(int kind, int finger, Vector2 screen)
+    {
+        BeginPlacement(kind);
+        (_, int height) = FootprintCheck.Size(World, kind);
+        Vector2 map = rig.ScreenToMap(screen);
+        System.Numerics.Vector2 middle = GhostDrag.AboveFinger(new System.Numerics.Vector2(map.X, map.Y), height, WorldView.CellHeight);
+        ghostOrigin = FootprintCheck.OriginUnder(World, kind, middle.X, middle.Y, WorldView.CellWidth, WorldView.CellHeight);
+        ghostHold = GhostDrag.Hold(ghostOrigin, CellAt(map));
+        RefreshGhost();
+        if (finger >= 0)
+        {
+            gestures.TakeOverGrab(finger, screen);
+        }
+        MatchDev.Log($"GHOST_DRAG out kind={kind} at={ghostOrigin.X},{ghostOrigin.Y} held={finger >= 0}");
+    }
+
+    /// <summary>How the finger dragging the ghost holds it (the finger's cell less the ghost's top-left cell).</summary>
+    private GridPoint ghostHold;
+
+    /// <summary>Fastest the view scrolls while the ghost is dragged against an edge, in screen pixels a second.</summary>
+    private const float DragScrollSpeed = 360;
+
+    /// <summary>
+    /// Whether a finger going down at <paramref name="screen"/> takes hold of the ghost: with a
+    /// finger, while placing, on the ghost or just beside it (the finger's slack).
+    /// </summary>
+    private bool GrabsGhost(Vector2 screen)
+    {
+        if (!metrics.Touch || placing is not { } p || SceneBlocksMap() || hud.Popup is not null || ModalDialog.IsOpen(hud.Dialogs))
+        {
+            return false;
+        }
+        Vector2 map = rig.ScreenToMap(screen);
+        (int width, int height) = FootprintCheck.Size(World, p.Kind);
+        var ghost = new Rect2(ghostOrigin.X * WorldView.CellWidth, ghostOrigin.Y * WorldView.CellHeight, width * WorldView.CellWidth, height * WorldView.CellHeight)
+            .Grow(TouchPickTolerance / rig.Zoom);
+        if (!ghost.HasPoint(map))
+        {
+            return false;
+        }
+        ghostHold = GhostDrag.Hold(ghostOrigin, CellAt(map));
+        return true;
+    }
+
+    /// <summary>The finger dragging the ghost is at <paramref name="screen"/>: the ghost follows it.</summary>
+    private void MoveGrabbedGhost(Vector2 screen)
+    {
+        if (placing is null)
+        {
+            return;
+        }
+        GridPoint origin = GhostDrag.Follow(CellAt(rig.ScreenToMap(screen)), ghostHold);
+        if (origin != ghostOrigin)
+        {
+            ghostOrigin = origin;
+            RefreshGhost();
+        }
+    }
+
+    /// <summary>The finger dragging the ghost was lifted: the ghost stays there until the tick places it.</summary>
+    private void ReleaseGrabbedGhost(Vector2 screen)
+    {
+        MoveGrabbedGhost(screen);
+        MatchDev.Log($"GHOST_DRAG released at={ghostOrigin.X},{ghostOrigin.Y} free={overlay.AllFree}");
+    }
+
+    /// <summary>While the ghost is dragged near an edge of the map part of the screen, the view scrolls that way and the ghost stays under the finger.</summary>
+    private void ScrollWhileDragging(double delta)
+    {
+        if (placing is null || !gestures.IsGrabbing)
+        {
+            return;
+        }
+        Rect2 free = hud.FreeArea;
+        Vector2 at = gestures.GrabPosition;
+        System.Numerics.Vector2 speed = GhostDrag.EdgeScroll(new System.Numerics.Vector2(at.X, at.Y),
+            new System.Numerics.Vector2(free.Position.X, free.Position.Y), new System.Numerics.Vector2(free.End.X, free.End.Y), metrics.Button, DragScrollSpeed);
+        if (speed == System.Numerics.Vector2.Zero)
+        {
+            return;
+        }
+        rig.PanBy(new Vector2(-speed.X, -speed.Y) * (float)delta);
+        MoveGrabbedGhost(at);
+    }
+
     private void StartGhost(string prompt)
     {
         Rect2 free = hud.FreeArea;

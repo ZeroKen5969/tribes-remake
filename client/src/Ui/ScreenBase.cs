@@ -58,6 +58,7 @@ public abstract partial class ScreenBase : Control
         AddChild(Overlay);
         Overlay.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         Resized += UpdateLayout;
+        GameApp.Instance.SafeMarginsChanged += OnSafeMarginsChanged;
         UiText.Changed += OnLanguageChanged;
         MusicPlayer.Instance?.PlayMood(MusicMood);
         CallDeferred(MethodName.UpdateLayout);
@@ -67,6 +68,7 @@ public abstract partial class ScreenBase : Control
     public override void _ExitTree()
     {
         UiText.Changed -= OnLanguageChanged;
+        GameApp.Instance.SafeMarginsChanged -= OnSafeMarginsChanged;
         if (Current == this)
         {
             Current = null;
@@ -88,17 +90,24 @@ public abstract partial class ScreenBase : Control
 
     private void OnLanguageChanged() => RefreshTexts();
 
+    private void OnSafeMarginsChanged() => CallDeferred(MethodName.UpdateLayout);
+
+    /// <summary>The room kept from each screen edge (cut-outs, rounded corners, the player's setting), in logical pixels.</summary>
+    protected static Logic.EdgeMargins SafeMargins => GameApp.Instance.SafeMargins;
+
     private void UpdateLayout()
     {
         bool now = Size.Y > Size.X;
         if (sheetMargin is not null)
         {
+            // The sheet keeps its own gap inside the room kept from the screen's edges.
+            Logic.EdgeMargins safe = SafeMargins;
             int side = now ? 4 : 8;
             int extra = Math.Max(0, (int)(Size.X - MaxSheetWidth) / 2);
-            sheetMargin.AddThemeConstantOverride("margin_left", side + extra);
-            sheetMargin.AddThemeConstantOverride("margin_right", side + extra);
-            sheetMargin.AddThemeConstantOverride("margin_top", now ? 6 : 4);
-            sheetMargin.AddThemeConstantOverride("margin_bottom", now ? 6 : 4);
+            sheetMargin.AddThemeConstantOverride("margin_left", Math.Max(side + extra, (int)safe.Left + side));
+            sheetMargin.AddThemeConstantOverride("margin_right", Math.Max(side + extra, (int)safe.Right + side));
+            sheetMargin.AddThemeConstantOverride("margin_top", (int)safe.Top + (now ? 6 : 4));
+            sheetMargin.AddThemeConstantOverride("margin_bottom", (int)safe.Bottom + (now ? 6 : 4));
         }
         if (!laidOut || now != portrait)
         {
@@ -148,10 +157,45 @@ public abstract partial class ScreenBase : Control
             header.AddChild(new Control { CustomMinimumSize = new Vector2(UiFactory.BackButtonWidth, 0) });
         }
         body.AddChild(new HSeparator());
-        var content = new VBoxContainer { Name = "Content", SizeFlagsVertical = SizeFlags.ExpandFill };
+        var content = new VBoxContainer { Name = "Content", SizeFlagsVertical = SizeFlags.ExpandFill, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         content.AddThemeConstantOverride("separation", 6);
-        body.AddChild(content);
+        // A screen too small for its content (a large interface on a small screen) scrolls as a
+        // page under its title, down and also sideways on a very narrow one; when everything
+        // fits the page is just the content, as before.
+        var page = new ScrollContainer
+        {
+            Name = "Page",
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Auto,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            FollowFocus = true,
+        };
+        page.AddChild(content);
+        body.AddChild(page);
+        Callable.From(() => KeepListsOpen(content)).CallDeferred();
         return content;
+    }
+
+    /// <summary>Rows a list on a page keeps however little room the page has (it scrolls inside them).</summary>
+    private const int ListMinimumHeight = 72;
+
+    /// <summary>
+    /// Gives the lists on the page a few rows' height, so on a page that scrolls they do not
+    /// shrink to nothing (with room to spare they still take all the room they are given).
+    /// </summary>
+    private static void KeepListsOpen(Control content)
+    {
+        foreach (Node child in content.GetChildren())
+        {
+            if (child is ScrollContainer list && list.CustomMinimumSize.Y < ListMinimumHeight)
+            {
+                list.CustomMinimumSize = new Vector2(list.CustomMinimumSize.X, ListMinimumHeight);
+            }
+            if (child is Control control)
+            {
+                KeepListsOpen(control);
+            }
+        }
     }
 
     /// <summary>Goes to <see cref="BackScreen"/>.</summary>

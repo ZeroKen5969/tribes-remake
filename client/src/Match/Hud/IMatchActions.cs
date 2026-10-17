@@ -73,6 +73,14 @@ public interface IMatchActions
     /// <summary>Starts placing building kind <paramref name="kind"/>.</summary>
     void BeginPlacement(int kind);
 
+    /// <summary>
+    /// Starts placing building kind <paramref name="kind"/> dragged out of the build menu by finger
+    /// <paramref name="finger"/> (-1 when it was lifted already), now at screen point
+    /// <paramref name="screen"/>: the ghost comes out just above the finger and follows it until
+    /// the finger is lifted.
+    /// </summary>
+    void DragPlacement(int kind, int finger, Godot.Vector2 screen);
+
     /// <summary>Starts placing a trap of <paramref name="trapKind"/> ordered from <paramref name="armoury"/>.</summary>
     void BeginTrap(int armoury, int trapKind);
 

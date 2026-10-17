@@ -228,6 +228,10 @@ public partial class MatchSettingsPanel : HudPopup
         });
         scale.Name = "InterfaceScale";
         Content.AddChild(UiFactory.Row("settings.scale", scale));
+        if (Metrics.Touch || Tribes.Client.Ui.Screens.SettingsScreen.EdgeMarginOffered)
+        {
+            Content.AddChild(UiFactory.Row("settings.edge_margin", Tribes.Client.Ui.Screens.SettingsScreen.EdgeMargins(settings)));
+        }
         OptionButton taskIcons = UiFactory.Options(["settings.task_icons.0", "settings.task_icons.1", "settings.task_icons.2"],
             Math.Clamp(settings.TaskIcons, 0, 2), index =>
             {

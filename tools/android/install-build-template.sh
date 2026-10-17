@@ -3,7 +3,7 @@
 # "Project > Install Android Build Template" does (client/android/.build_version holds the Godot
 # version, build/.gdignore keeps the editor from importing it), then adds the game's own Android
 # code from client/android/platform/:
-#   java/ -> build/src/main/java/        (UpdateInstaller, UpdateFileProvider, MulticastLockHelper)
+#   java/ -> build/src/main/java/        (UpdateInstaller, UpdateFileProvider, MulticastLockHelper, ScreenCorners)
 #   res/  -> build/res/                  (FileProvider paths)
 #   AndroidManifest.application.xml      inserted into <application> of build/src/main/AndroidManifest.xml
 # and makes Gradle run without a resident daemon and with a smaller heap.

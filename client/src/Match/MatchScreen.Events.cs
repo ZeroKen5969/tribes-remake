@@ -443,7 +443,7 @@ public partial class MatchScreen
         hud.Players.Refresh();
         hud.Banner.Text = SessionText.Role(runner.Role);
         hud.Banner.Visible = hud.Banner.Text.Length > 0;
-        hud.Commands.Arrange(metrics, vertical: !metrics.Portrait);
+        hud.RefreshCommands();
     }
 
     private void OnNotice(object? sender, MatchNoticeEventArgs e)

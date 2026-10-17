@@ -76,6 +76,7 @@ bash tools/android/install-build-template.sh --force   # 刪掉 client/android/b
 | `java/com/prehistoric/tribes/platform/UpdateInstaller.java` | 把更新 APK 交給系統安裝程式、開啟「安裝不明應用程式」設定畫面 |
 | `java/com/prehistoric/tribes/platform/UpdateFileProvider.java` | 分享 APK 用的 FileProvider |
 | `java/com/prehistoric/tribes/platform/MulticastLockHelper.java` | 區網搜尋房間時要持有的 Wi-Fi multicast lock |
+| `java/com/prehistoric/tribes/platform/ScreenCorners.java` | 讀出螢幕四角的圓弧（Android 12 起），讓按鈕避開圓角 |
 | `res/xml/tribes_update_paths.xml` | FileProvider 只分享 `files/updates/app/`（即 `user://updates/app/`） |
 | `AndroidManifest.application.xml` | 插入範本 `AndroidManifest.xml` 的 `<application>` 內（FileProvider 宣告） |
 

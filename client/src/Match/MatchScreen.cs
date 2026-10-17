@@ -210,6 +210,7 @@ public partial class MatchScreen : Node2D, IMatchActions
         // The setting may change in the menu during the match.
         rig.EdgeScroll = GameApp.Instance.Settings.EdgeScroll && !metrics.Touch;
         rig.Process(delta, KeyPan(), EdgeScrollMouse(), GetViewportRect().Size);
+        ScrollWhileDragging(delta);
         Rect2 seen = rig.VisibleMap();
         if (seen != hud.Minimap.ViewArea)
         {
@@ -532,8 +533,7 @@ public partial class MatchScreen : Node2D, IMatchActions
     {
         hud.Context.Refresh(force: true);
         hud.Players.Refresh();
-        hud.Commands.Arrange(metrics, vertical: !metrics.Portrait);
-        hud.Relayout();
+        hud.RefreshCommands();
     }
 
     private const int DevEndlessStartArea = 128;

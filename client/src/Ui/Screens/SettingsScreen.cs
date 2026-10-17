@@ -63,6 +63,10 @@ public partial class SettingsScreen : ScreenBase
             GameApp.Instance.ApplySettings();
         });
         rows.AddChild(UiFactory.Row("settings.scale", scale));
+        if (EdgeMarginOffered)
+        {
+            rows.AddChild(UiFactory.Row("settings.edge_margin", EdgeMargins(settings)));
+        }
         if (GameApp.CanFullscreen)
         {
             rows.AddChild(UiFactory.Row("settings.display", DisplayModes()));
@@ -133,6 +137,32 @@ public partial class SettingsScreen : ScreenBase
             // Development: show the option list open, to check the popup style.
             languages.CallDeferred(OptionButton.MethodName.ShowPopup);
         }
+    }
+
+    /// <summary>Whether this screen is touched, where buttons can be kept further from the edges (rounded or curved screens).</summary>
+    public static bool EdgeMarginOffered => DisplayServer.IsTouchscreenAvailable() || OS.HasFeature("mobile") || Dev.DevOptions.Has("screen-corners");
+
+    /// <summary>
+    /// The choice of extra room between the buttons and the screen's edges (none to larger), on
+    /// top of what the screen's cut-outs and rounded corners need; applied at once on every screen.
+    /// </summary>
+    public static OptionButton EdgeMargins(GameSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        int[] choices = Logic.SafeMargins.PlayerChoices;
+        string[] names = new string[choices.Length];
+        for (int i = 0; i < names.Length; i++)
+        {
+            names[i] = "settings.edge_margin." + i.ToString(CultureInfo.InvariantCulture);
+        }
+        OptionButton margins = UiFactory.Options(names, Logic.SafeMargins.ChoiceFor(settings.EdgeMargin), index =>
+        {
+            settings.EdgeMargin = choices[index];
+            settings.Save();
+            GameApp.Instance.ApplySettings();
+        });
+        margins.Name = "EdgeMargin";
+        return margins;
     }
 
     /// <summary>The window or full screen choice (PC); it follows F11 and Alt+Enter while the screen is open.</summary>

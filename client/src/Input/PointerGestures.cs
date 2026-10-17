@@ -7,7 +7,8 @@ namespace Tribes.Client.Input;
 /// Turns touch and mouse input into the gestures the map understands, so the rest of the client
 /// does not care whether it runs on a phone or a PC:
 /// tap (select / order), long press (box selection on touch), drag (pan), pinch and wheel (zoom),
-/// mouse drag with the left button (box selection) and right click (order).
+/// mouse drag with the left button (box selection) and right click (order), and a finger
+/// dragging what it took hold of (the ghost of a building being placed, see <see cref="Grabs"/>).
 /// </summary>
 public partial class PointerGestures : Node
 {
@@ -25,6 +26,25 @@ public partial class PointerGestures : Node
 
     /// <summary>A right click counts on release and only when the mouse did not drag (right drag pans).</summary>
     public bool SecondaryOnRelease { get; set; }
+
+    /// <summary>
+    /// Asked when one finger goes down at a screen position: whether it takes hold of something
+    /// there (the ghost of a building being placed). A drag of that finger then moves it
+    /// (<see cref="GrabMoved"/>) instead of panning; a touch without a drag is still a tap.
+    /// </summary>
+    public System.Func<Vector2, bool>? Grabs { get; set; }
+
+    /// <summary>Whether a finger holds something now (see <see cref="Grabs"/>).</summary>
+    public bool IsGrabbing => grabbing && moved;
+
+    /// <summary>Where the finger that holds something is now.</summary>
+    public Vector2 GrabPosition { get; private set; }
+
+    /// <summary>The finger holding something moved to a screen position.</summary>
+    [Signal] public delegate void GrabMovedEventHandler(Vector2 position);
+
+    /// <summary>The finger holding something was lifted, or a second finger took over.</summary>
+    [Signal] public delegate void GrabReleasedEventHandler(Vector2 position);
 
     /// <summary>A short touch or left click at a screen position.</summary>
     [Signal] public delegate void TappedEventHandler(Vector2 position);
@@ -64,13 +84,29 @@ public partial class PointerGestures : Node
     private Vector2 lastTapPosition;
     private bool mouseLeftDown;
     private Vector2? rightPressAt;
+    private bool grabbing;
 
     private static double Now => Time.GetTicksMsec() / 1000.0;
+
+    /// <summary>
+    /// Goes on with finger <paramref name="index"/>, pressed on the interface (a building dragged
+    /// out of the build menu), as a finger holding something at <paramref name="position"/>: its
+    /// next moves are <see cref="GrabMoved"/> and lifting it is <see cref="GrabReleased"/>.
+    /// </summary>
+    public void TakeOverGrab(int index, Vector2 position)
+    {
+        touches.Clear();
+        touches[index] = position;
+        BeginPress(position);
+        moved = true;
+        grabbing = true;
+        GrabPosition = position;
+    }
 
     /// <inheritdoc/>
     public override void _Process(double delta)
     {
-        if (pressTime >= 0 && !moved && !longPressFired && touches.Count == 1 && Now - pressTime >= LongPressSeconds)
+        if (pressTime >= 0 && !moved && !longPressFired && !grabbing && touches.Count == 1 && Now - pressTime >= LongPressSeconds)
         {
             longPressFired = true;
             boxing = true;
@@ -112,10 +148,15 @@ public partial class PointerGestures : Node
             if (touches.Count == 1)
             {
                 BeginPress(touch.Position);
-                boxing = DragSelects;
+                grabbing = Grabs?.Invoke(touch.Position) == true;
+                GrabPosition = touch.Position;
+                boxing = DragSelects && !grabbing;
             }
             else if (touches.Count == 2)
             {
+                // The hold ends where the first finger is (before this counts as a move, so a ghost
+                // held still does not jump), and the two fingers pinch.
+                LetGoOfGrab(GrabPosition);
                 pinchDistance = PinchDistance();
                 moved = true;
                 boxing = false;
@@ -221,6 +262,22 @@ public partial class PointerGestures : Node
         moved = false;
         boxing = false;
         longPressFired = false;
+        grabbing = false;
+    }
+
+    /// <summary>Ends a hold (a second finger took over, or the finger was lifted after a drag).</summary>
+    private void LetGoOfGrab(Vector2 position)
+    {
+        if (!grabbing)
+        {
+            return;
+        }
+        bool dragged = moved;
+        grabbing = false;
+        if (dragged)
+        {
+            EmitSignal(SignalName.GrabReleased, position);
+        }
     }
 
     private void Track(Vector2 position, Vector2 relative)
@@ -233,7 +290,12 @@ public partial class PointerGestures : Node
         {
             return;
         }
-        if (boxing)
+        if (grabbing)
+        {
+            GrabPosition = position;
+            EmitSignal(SignalName.GrabMoved, position);
+        }
+        else if (boxing)
         {
             EmitSignal(SignalName.BoxChanged, Box(position));
         }
@@ -249,6 +311,14 @@ public partial class PointerGestures : Node
         {
             return;
         }
+        if (grabbing && moved)
+        {
+            // A drag of what the finger held ends where it was let go; it is not a tap.
+            LetGoOfGrab(position);
+            pressTime = -1;
+            return;
+        }
+        grabbing = false;
         if (boxing && moved)
         {
             EmitSignal(SignalName.BoxSelected, Box(position));

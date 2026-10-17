@@ -138,16 +138,20 @@ public partial class SceneDialog : Control
     /// <summary>The picture of a picture step.</summary>
     public int Picture { get; private set; }
 
+    /// <summary>The part of the screen the words stay in (clear of cut-outs and rounded corners); the black bars still fill the screen.</summary>
+    public Rect2? SafeArea { get; set; }
+
     /// <summary>Lays the parts out for the current size.</summary>
     public void Arrange()
     {
-        float width = Mathf.Min(Size.X - 8, 520);
+        Rect2 area = SafeArea is { } safe && safe.Size.X > 0 && safe.Size.Y > 0 ? safe : new Rect2(Vector2.Zero, Size);
+        float width = Mathf.Min(area.Size.X - 8, 520);
         textBox.Size = new Vector2(width, 0);
         float height = textBox.GetCombinedMinimumSize().Y;
-        textBox.Position = new Vector2((Size.X - width) / 2, Size.Y - height - Mathf.Max(4, Size.Y * 0.04f)).Floor();
-        float chapterWidth = Mathf.Min(Size.X - 8, 560);
-        chapter.Size = new Vector2(chapterWidth, Mathf.Min(Size.Y - 8, Mathf.Max(200, Size.Y * 0.9f)));
-        chapter.Position = ((Size - chapter.Size) / 2).Floor();
+        textBox.Position = new Vector2(area.Position.X + ((area.Size.X - width) / 2), area.End.Y - height - Mathf.Max(4, area.Size.Y * 0.04f)).Floor();
+        float chapterWidth = Mathf.Min(area.Size.X - 8, 560);
+        chapter.Size = new Vector2(chapterWidth, Mathf.Min(area.Size.Y - 8, Mathf.Max(200, area.Size.Y * 0.9f)));
+        chapter.Position = (area.Position + ((area.Size - chapter.Size) / 2)).Floor();
     }
 
     /// <inheritdoc/>

@@ -1,0 +1,19 @@
+# Run: --ui-window=1560x720 --ui-screen=../match/match --match-endless=7 --match-computers=2 --match-touch --match-touch-dpi=271
+# An endless world's buttons (eight big buttons, the tribes panel, the menu) can all be pressed with a finger.
+until match 600
+wait 30
+expect reachable
+press RelationsButton
+wait 10
+expect popup RelationsPanel
+expect reachable
+key Escape
+wait 5
+press MenuButton
+wait 10
+expect reachable
+key Escape
+wait 5
+press BuildButton
+wait 10
+expect reachable

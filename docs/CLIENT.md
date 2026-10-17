@@ -23,6 +23,9 @@ Godot 4.7.2 .NET 用戶端在 `client/`。本文件說明選單、設定與它�
 - 畫面以邏輯像素排版，整數倍放大（`GameApp`）：短邊至少 340 邏輯像素。視窗不是倍率的整數倍時，最後一個邏輯像素只露出一部分，任何大小都填滿視窗、沒有黑邊；改變視窗大小時倍率與版面立即重算。
 - PC 可以全螢幕：設定的「畫面」（視窗／全螢幕），或在任何畫面按 F11、Alt＋Enter 切換（`GameApp._Input`，在介面元件之前接到，Enter 不會按到選到的按鈕），選擇存進設定、下次開遊戲照樣。全螢幕是 Godot 的無邊框全螢幕（`Window.ModeEnum.Fullscreen`，桌面的解析度、不換顯示模式），切到別的視窗不必換螢幕模式；回到視窗時恢復原本的視窗（含最大化）。切換時視窗大小改變，畫面照上一條重新排版。開發用的 `--ui-window`、`--resize-to` 時不套用全螢幕。
 - 直向與橫向都可用，直向時兩欄的畫面改成上下排列，戰役的關卡清單與簡報改為分頁切換。
+- 所有畫面的按鈕都排在螢幕的安全範圍內（`GameApp.SafeMargins`，邏輯像素）：避開瀏海與挖孔（手機回報的安全區域，`DisplayServer.GetDisplaySafeArea`），避開圓角（Android 12 起由 `ScreenCorners.java` 讀出每個角的圓弧，按鈕的角要落在圓弧內，大約留圓角半徑的 0.29 倍，`SafeMargins.ForCorners`），再加上設定的「螢幕邊緣留白」；轉向後 0.3 秒、1 秒再重讀一次。地圖、背景與劇情的黑邊仍鋪滿整個螢幕。PC 與沒有瀏海、圓角的手機不留邊。
+- 畫面放不下內容時（例如手機上把介面大小調大），標題下面的內容整頁可以上下捲動，太窄時也可以左右捲動，頁面裡的清單至少保留 72 邏輯像素高；畫面放得下時版面和沒有捲動時一樣。主選單一欄排不下時排成兩欄。
+- 觸控螢幕上，清單從按鈕或框起來的一列上開始拖曳也能捲動（`TouchScrolling`：清單裡的按鈕與面板把按下也交給清單；清單開始捲動時放開手指起頭的那個按鈕，所以拖曳不會按到它）；手指移動 10 邏輯像素以內仍算點擊。
 - 觸控、滑鼠、鍵盤都能操作：一般按鈕至少 24 邏輯像素高；方向鍵與 Tab 移動焦點；Esc 或 Android 返回鍵回到上一層，主選單上會詢問是否離開。
 - 開始對局後切到對局畫面（見下方「對局畫面」）。
 
@@ -36,6 +39,7 @@ Godot 4.7.2 .NET 用戶端在 `client/`。本文件說明選單、設定與它�
 | `MusicVolume` | 音樂音量 | 0～1，立即套用；0 時音樂暫停 |
 | `EffectsVolume` | 音效音量 | 0～1，立即套用（改的時候播一聲試聽）；0 時不出聲 |
 | `InterfaceScale` | 介面大小 | 1 標準、2 大、3 特大：在自動倍率上再放大，但短邊至少保留 200 邏輯像素 |
+| `EdgeMargin` | 螢幕邊緣留白 | 無、小、中、大、特大（0、6、12、18、24 邏輯像素，`SafeMargins.PlayerChoices`）：在瀏海與圓角需要的留白之外，所有畫面的按鈕再離螢幕邊緣這麼遠，立即套用；只在觸控螢幕顯示，預設無 |
 | `ShowHints` | 遊戲中顯示提示 | 傳給對局 |
 | `Tutorial` | 前幾關顯示教學說明 | 傳給對局 |
 | `EdgeScroll` | 滑鼠碰到視窗邊緣時捲動畫面 | 只在 PC 顯示 |
@@ -176,8 +180,10 @@ Godot 4.7.2 .NET 用戶端在 `client/`。本文件說明選單、設定與它�
 | `--lan-ready`、`--lan-mode=endless` | 加入的玩家拿到欄位一秒後自動按準備；主機開無盡模式的房間 |
 | `--lan-snapshot-limit=位元組` | 只在除錯版有效。區域網路主機送出的世界最多這麼大（看世界太大時玩家收到的通知） |
 | `--update-check` | 更新畫面一開就檢查 |
+| `--ui-reach` | 截圖後檢查畫面上每個按鈕都按得到：夠大的一部分在螢幕的安全範圍內（或捲動清單後在），而且按下去不會落到蓋在它上面的東西；打開的面板、問題框與劇情蓋住的按鈕只計數（`UiReach`，印出 `UI_REACH`、`UI_REACH_PROBLEM`） |
+| `--screen-corners=R` | 在 PC 上當作螢幕四角是半徑 R 視窗像素的圓角（看手機的留白版面） |
 
-畫面與房間的變化會印出 `LOBBY …`、`UPDATE …`、`MATCH_REQUEST …` 等紀錄行；截圖後的 `UI_EDGES` 列出桌面上視窗最外圈的顏色（只含在螢幕範圍內的部分）。`--ui-capture` 也適用於地圖等非選單場景。
+畫面與房間的變化會印出 `LOBBY …`、`UPDATE …`、`MATCH_REQUEST …` 等紀錄行，安全範圍的邊距在開機與改變時印成 `SAFE_MARGINS`；截圖後的 `UI_EDGES` 列出桌面上視窗最外圈的顏色（只含在螢幕範圍內的部分）。`--ui-capture` 也適用於地圖等非選單場景。
 
 ## 對局畫面
 
@@ -215,8 +221,10 @@ Godot 4.7.2 .NET 用戶端在 `client/`。本文件說明選單、設定與它�
 | 訊息列 | 左上 | 左上 |
 | 玩家清單（多人） | 小地圖下方，靠右 | 同左 |
 
-- 觸控螢幕（`DisplayServer.IsTouchscreenAvailable` 或 Android）的按鈕約 9 公釐（依螢幕 dpi 與倍率算出，30～60 邏輯像素），圖示整數倍放大；滑鼠時按鈕 24 邏輯像素。觸控時大按鈕是：選單、暫停、建造、軍隊、村民、多選、小地圖；滑鼠時是：建造、軍隊、村民、移到選取、小地圖、說明、任務目標。
-- 橫向時選取面板寬度是地圖區的 42%（200～320 邏輯像素），但至少寬到一名村民的四個指令按鈕和右上角的 ✕ 排在同一列（`ContextPanel.OrdersWidth`；手機橫向的觸控按鈕約 48 邏輯像素時面板會比 42% 寬）。
+- 觸控螢幕（`DisplayServer.IsTouchscreenAvailable` 或 Android）的按鈕約 9 公釐（依螢幕 dpi 與倍率算出，30～60 邏輯像素），圖示整數倍放大；滑鼠時按鈕 24 邏輯像素。觸控時大按鈕是：選單、暫停、建造、軍隊、村民、（無盡模式）部落、多選、小地圖；滑鼠時是：建造、軍隊、村民、（無盡模式）部落、移到選取、小地圖、說明、任務目標。
+- 大按鈕一定全部排得下（`ButtonStrip`）：一排放不下時先縮小，最小到約 7.6 公釐（Android 的 48 dp，`HudMetrics.SmallestButton`）；再放不下就排成兩排（橫向是兩欄），按鈕回到原本大小。
+- 介面的每個部分都排在螢幕的安全範圍內（見上方「畫面」）；鏡頭的限制與面板置中的範圍都把它算進去。
+- 橫向時選取面板寬度是地圖區的 42%（200～320 邏輯像素），但至少寬到一名村民的四個指令按鈕和右上角的 ✕ 排在同一列（`ContextPanel.OrdersWidth`；手機橫向的觸控按鈕約 48 邏輯像素時面板會比 42% 寬）。面板最高長到上方列下面的人數那裡，不會蓋住人數，卡片放不下時在面板裡捲動。
 - 鏡頭的限制扣掉介面蓋住的部分（`CameraLimits`）：地圖每一邊都能拉到介面外面；地圖比空出的區域小時置中。
 
 ### 鏡頭
@@ -245,7 +253,7 @@ Godot 4.7.2 .NET 用戶端在 `client/`。本文件說明選單、設定與它�
 | 指令 | 在哪裡下 |
 |---|---|
 | `MoveUnits` | 選取村民後點（右鍵）目標；連點兩下跑過去 |
-| `PlaceBuilding` | 「建造」→ 選建築 → 藍圖：綠格可蓋、紅格不行；觸控點地圖移動藍圖、按勾放下；滑鼠藍圖跟著游標、左鍵放下（Shift 連續放）、右鍵取消 |
+| `PlaceBuilding` | 「建造」→ 選建築 → 藍圖：綠格可蓋、紅格不行。觸控：按住藍圖（含旁邊一點）拖曳，手指按住的那一格一直留在手指下；拖到地圖區邊緣一個按鈕寬的範圍內，畫面往那邊捲動，越靠邊越快（最快每秒 360 邏輯像素，`GhostDrag`）；或點地圖移動藍圖；也可以在建造選單按住一種建築拖出選單，選單關閉、藍圖出現在手指上方並跟著手指（`IMatchActions.DragPlacement`，`PointerGestures.TakeOverGrab`）。按勾放下。滑鼠：藍圖跟著游標、左鍵放下（Shift 連續放）、右鍵取消 |
 | `PlaceTrap` | 軍械庫面板的陷阱「＋」→ 選位置 |
 | `DemolishBuilding` | 建築面板「拆除」（確認）；滑鼠時 Delete 鍵 |
 | `OrderBuildingWork` | 建築面板「升級」「修理」「取消升級」「取消修理」 |
@@ -333,7 +341,7 @@ Godot 4.7.2 .NET 用戶端在 `client/`。本文件說明選單、設定與它�
 | `--match-fps-log` | 每兩秒印一行 `MATCH_FPS`（幀率、最慢一幀、組圖時間、視窗、倍率、縮放、按鈕大小） |
 | `--match-script=路徑` | 播放介面腳本（下表），印出 `SCRIPT …`，結束時 `SCRIPT_DONE ok` 或 `SCRIPT_FAIL …` |
 
-除錯版另外印出 `MATCH_READY`、`TAP`、`BOX_SELECT`、`ORDER_SENT`／`ORDER_APPLIED`／`ORDER_REFUSED`、`MATCH_SAVED`、`MATCH_RESULT`、`MATCH_CHEAT` 行（`MatchDev.Log`）；正式版不印。
+除錯版另外印出 `MATCH_READY`、`TAP`、`BOX_SELECT`、`ORDER_SENT`／`ORDER_APPLIED`／`ORDER_REFUSED`、`MATCH_SAVED`、`MATCH_RESULT`、`MATCH_CHEAT`、`GHOST_DRAG` 行（`MatchDev.Log`）；正式版不印。
 
 | `--ui-window=寬x高` | 腳本執行時也設定無邊框視窗大小 |
 | `--site-check`、`--site-check-original` | 上述建築完整繪製檢查 |
@@ -346,7 +354,9 @@ Godot 4.7.2 .NET 用戶端在 `client/`。本文件說明選單、設定與它�
 | `wait N`、`ticks N` | 等 N 幀、等 N 個 tick |
 | `until match｜menu｜campaignlist｜play｜scene｜over｜results｜placing｜popup｜nopopup｜hint｜inside｜evictable [幀數]` | 等到條件成立 |
 | `skipscenes on｜off` | 打開或關掉劇情自動點過去 |
-| `tap X Y`、`dtap X Y`、`rclick X Y`、`drag X1 Y1 X2 Y2` | 點、連點、右鍵、拖曳 |
+| `tap X Y`、`dtap X Y`、`rclick X Y`、`drag X1 Y1 X2 Y2` | 點、連點、右鍵、拖曳（拖曳在同一幀送完） |
+| `slowdrag X1 Y1 X2 Y2 [幀數]`、`dragghost 格數X 格數Y [幀數]`、`dragfrom 名稱 X Y [幀數]` | 像人一樣一幀移一步的拖曳（預設 12 幀）；從藍圖中間拖動整數格；從介面元件中間拖到某點（在捲動清單裡會先捲到看得到） |
+| `markghost`、`reach [標籤]` | 記下藍圖的位置；列出按不到的按鈕（不讓腳本失敗） |
 | `tapcell X Y`、`dtapcell X Y`、`rclickcell X Y` | 對地圖格 |
 | `tapmap PX PY`、`rclickmap PX PY` | 對地圖像素（先把它移到畫面上；點建築畫在佔地上方的部分等） |
 | `tapunit N`、`tapbuilding 種類 [部落]`（-1 工地）、`tapevictable` | 點第 N 個在外面的村民、自己（或那個部落）的某種建築、有人可以趕出來的建築 |
@@ -359,14 +369,15 @@ Godot 4.7.2 .NET 用戶端在 `client/`。本文件說明選單、設定與它�
 | `resize 寬x高`、`capture 路徑` | 改視窗大小、截圖 |
 | `cheat win｜lose｜hint N｜chief｜finish｜unlock 種類 等級｜stock 計數 數量｜damage 耐久｜reveal｜message X Y` | 開發用作弊（`chief`：戰役直接要求選新酋長，對戰與無盡模式讓酋長死掉、照規則等安靜時再要求；`damage`：選取的建築只剩這麼多耐久；`reveal`：固定地圖整張算探索過；`message`：訊息列加一則關於格 X, Y 的短訊息） |
 | `deletesave 模式 欄位` | 刪除存檔 |
-| `expect units N｜building｜nothing｜popup 名稱｜nopopup｜applied 指令 [次數]｜control 名稱｜nocontrol 名稱｜scene on/off｜dialogue N｜placing｜tribe N｜mission N｜completed 關卡｜paused on/off｜roster on/off｜minimap on/off｜file 路徑｜nofile 路徑` | 檢查，不成立時 `SCRIPT_FAIL` |
+| `expect units N｜building｜nothing｜popup 名稱｜nopopup｜applied 指令 [次數]｜control 名稱｜nocontrol 名稱｜scene on/off｜dialogue N｜placing｜tribe N｜mission N｜completed 關卡｜paused on/off｜roster on/off｜minimap on/off｜file 路徑｜nofile 路徑｜reachable｜ghostshift DX DY` | 檢查，不成立時 `SCRIPT_FAIL`（`reachable`：畫面上每個按鈕都按得到，同 `--ui-reach`；`ghostshift`：藍圖從 `markghost` 起移動了這麼多格） |
 | `dump`、`dumpunit ID`、`quit` | 印狀態、結束 |
 
-`client/dev/scripts/`（不隨遊戲發佈）有逐一下過 19 種指令（`orders-1`、`orders-2`）、戰役流程與存讀檔（`campaign`）、觸控（`touch`）、改視窗大小（`resize`）、每個面板（`tour`）、劇情（`story`）、結果畫面（`results`、`defeat`）、戰役結尾（`ending`）、讓遊戲停下的面板（`holds`）、按提示框的按鈕不會點到地圖（`hint-tap`）與第 3 關沒有小地圖（`overview`）的腳本；每個檔案第一行寫著要用的參數。`bash tools/match/check-match.sh [截圖目錄]` 依序跑完所有腳本與建築完整繪製檢查，列出每個的結果（先 `dotnet build client/Tribes.Client.csproj`）。截圖的檔名不含路徑時存到 `--match-script-out=目錄`（預設 `user://script-captures`）。
+`client/dev/scripts/`（不隨遊戲發佈）有逐一下過 19 種指令（`orders-1`、`orders-2`）、戰役流程與存讀檔（`campaign`）、觸控（`touch`）、改視窗大小（`resize`）、每個面板（`tour`）、劇情（`story`）、結果畫面（`results`、`defeat`）、戰役結尾（`ending`）、讓遊戲停下的面板（`holds`）、按提示框的按鈕不會點到地圖（`hint-tap`）、第 3 關沒有小地圖（`overview`），以及用手指按得到每個按鈕（`reach`：對局畫面與每種面板；`reach-endless`：無盡模式的八個大按鈕與部落面板）的腳本；每個檔案第一行寫著要用的參數。`bash tools/match/check-match.sh [截圖目錄]` 依序跑完所有腳本與建築完整繪製檢查，列出每個的結果（先 `dotnet build client/Tribes.Client.csproj`）。`bash tools/match/check-reach.sh [輸出目錄]` 用手機的幾種畫面跑 `reach`、`reach-endless` 與每個選單畫面的 `--ui-reach`：橫向、直向、較小的螢幕、介面大小特大（橫向與直向）、圓角加上最大的邊緣留白，每種各用一份設定檔，任何按鈕按不到就失敗。截圖的檔名不含路徑時存到 `--match-script-out=目錄`（預設 `user://script-captures`）。
 
 ### 限制
 
 - 畫面外或視野外的戰鬥沒有聲音，所以聲音不會透露看不到的事。
+- Android 11 以前不會回報螢幕圓角，這類手機的圓角只能靠設定的「螢幕邊緣留白」避開。
 - 結果畫面的分數照原版乘 10，不加原版的隨機個位數。
 - 定時自動存檔與手動存檔的縮圖只有世界、不含介面；離開對局時沒有時間再畫一幀，縮圖是離開前的整個畫面（含介面；從選單離開時是打開選單時那張）。
 

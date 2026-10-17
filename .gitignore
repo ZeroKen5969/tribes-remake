@@ -14,7 +14,9 @@ bin/
 obj/
 /build/
 client/.godot/
-client/android/
+# The installed Android build template is generated; the game's own Android code in platform/ is source.
+client/android/*
+!client/android/platform/
 client/content/
 client/assets/
 

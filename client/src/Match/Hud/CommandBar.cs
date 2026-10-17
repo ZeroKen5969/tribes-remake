@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Godot;
+using Tribes.Client.MatchPlay.Logic;
 
 namespace Tribes.Client.MatchPlay.Hud;
 
@@ -44,8 +46,9 @@ public enum HudCommand
 /// <summary>
 /// The row (portrait) or column (landscape) of big buttons: with a finger the menu, pause, build,
 /// army, roster, multi-select and minimap; with a mouse build, army, roster, centre, minimap, help
-/// and objective (the menu and speed are on the top bar). Each button is named after its
-/// command (for scripted checks).
+/// and objective (the menu and speed are on the top bar). All of them always fit on the screen
+/// (<see cref="ButtonStrip"/>): a little smaller when the edge is short, in two lines when even
+/// that is too long. Each button is named after its command (for scripted checks).
 /// </summary>
 public partial class CommandBar : BoxContainer
 {
@@ -53,6 +56,7 @@ public partial class CommandBar : BoxContainer
 
     private readonly IMatchActions actions;
     private readonly Dictionary<HudCommand, Button> buttons = new();
+    private string arranged = "";
 
     /// <summary>A bar for the match <paramref name="actions"/> plays.</summary>
     public CommandBar(IMatchActions actions)
@@ -63,15 +67,31 @@ public partial class CommandBar : BoxContainer
     /// <summary>A button was pressed.</summary>
     public event Action<HudCommand>? Pressed;
 
+    /// <summary>How deep the bar is across its edge (its width as a column, its height as a row).</summary>
+    public float Thickness { get; private set; }
+
     /// <summary>The button of <paramref name="command"/>, if shown.</summary>
     public Button? ButtonOf(HudCommand command) => buttons.TryGetValue(command, out Button? b) ? b : null;
 
-    /// <summary>Puts the buttons for <paramref name="metrics"/> in a row or a column.</summary>
-    public void Arrange(HudMetrics metrics, bool vertical)
+    /// <summary>
+    /// Puts the buttons for <paramref name="metrics"/> in a column (<paramref name="vertical"/>) or
+    /// a row <paramref name="length"/> pixels long. Nothing is rebuilt when nothing changed, unless
+    /// <paramref name="force"/>.
+    /// </summary>
+    public void Arrange(HudMetrics metrics, bool vertical, float length, bool force = false)
     {
         ArgumentNullException.ThrowIfNull(metrics);
+        List<(HudCommand Command, Texture2D Icon, string Tip, bool Toggle)> wanted = Wanted(metrics);
+        StripFit fit = ButtonStrip.Fit(wanted.Count, length, metrics.Button, metrics.SmallestButton, metrics.Gap);
+        string key = string.Join(",", vertical, fit, metrics.Gap, metrics.Touch, string.Join("/", wanted.ConvertAll(w => w.Command)));
+        if (!force && key == arranged)
+        {
+            return;
+        }
+        arranged = key;
         Name = "CommandBar";
-        Vertical = vertical;
+        // The lines lie side by side across the edge; each runs along it.
+        Vertical = !vertical;
         MouseFilter = MouseFilterEnum.Ignore;
         AddThemeConstantOverride("separation", metrics.Gap);
         Alignment = AlignmentMode.Center;
@@ -86,45 +106,76 @@ public partial class CommandBar : BoxContainer
         }
         HudWidgets.Clear(this);
         buttons.Clear();
+        HudMetrics sized = metrics with { Button = fit.Button, IconScale = HudMetrics.IconScaleFor(fit.Button) };
+        BoxContainer? line = null;
+        for (int i = 0; i < wanted.Count; i++)
+        {
+            if (i % Math.Max(1, fit.PerLine) == 0)
+            {
+                line = new BoxContainer
+                {
+                    Name = "Line" + (i / Math.Max(1, fit.PerLine)).ToString(CultureInfo.InvariantCulture),
+                    Vertical = vertical,
+                    Alignment = AlignmentMode.Center,
+                    MouseFilter = MouseFilterEnum.Ignore,
+                };
+                line.AddThemeConstantOverride("separation", metrics.Gap);
+                AddChild(line);
+            }
+            (HudCommand command, Texture2D icon, string tip, bool toggle) = wanted[i];
+            HudCommand pressed = command;
+            Button button = HudWidgets.IconButton(sized, icon, tip, () => Pressed?.Invoke(pressed), name: command + "Button");
+            button.ToggleMode = toggle;
+            buttons[command] = button;
+            line!.AddChild(button);
+        }
+        Thickness = fit.Thickness(metrics.Gap);
+        foreach (HudCommand command in wasOn)
+        {
+            SetToggled(command, true);
+        }
+    }
+
+    /// <summary>The buttons the bar shows now, in order.</summary>
+    private List<(HudCommand, Texture2D, string, bool)> Wanted(HudMetrics metrics)
+    {
+        var wanted = new List<(HudCommand, Texture2D, string, bool)>();
         bool orders = !actions.Spectating;
         if (metrics.Touch)
         {
-            Add(metrics, HudCommand.Menu, HudArt.Painted(PaintedIcon.Menu), "hud.menu");
+            wanted.Add((HudCommand.Menu, HudArt.Painted(PaintedIcon.Menu), "hud.menu", false));
             if (actions.Runner.CanPause)
             {
-                Add(metrics, HudCommand.Pause, HudArt.Painted(PaintedIcon.Pause), "hud.pause").ToggleMode = true;
+                wanted.Add((HudCommand.Pause, HudArt.Painted(PaintedIcon.Pause), "hud.pause", true));
             }
         }
         if (orders)
         {
-            Add(metrics, HudCommand.Build, HudArt.Effect(BuildEntry), GameTexts.Entry(BuildEntry));
-            Add(metrics, HudCommand.Army, HudArt.Effect(AllOutEntry), "hud.army");
-            Add(metrics, HudCommand.Roster, HudArt.Effect(VillagersEntry), GameTexts.Entry(VillagersEntry));
+            wanted.Add((HudCommand.Build, HudArt.Effect(BuildEntry), GameTexts.Entry(BuildEntry), false));
+            wanted.Add((HudCommand.Army, HudArt.Effect(AllOutEntry), "hud.army", false));
+            wanted.Add((HudCommand.Roster, HudArt.Effect(VillagersEntry), GameTexts.Entry(VillagersEntry), false));
         }
         if (actions.World.Endless is not null)
         {
             // Endless worlds: the tribes and alliances (also for watchers, who only read it).
-            Add(metrics, HudCommand.Relations, HudArt.Painted(PaintedIcon.Alliance), "relations.title");
+            wanted.Add((HudCommand.Relations, HudArt.Painted(PaintedIcon.Alliance), "relations.title", false));
         }
         if (metrics.Touch)
         {
             if (orders)
             {
-                Add(metrics, HudCommand.MultiSelect, HudArt.Painted(PaintedIcon.MultiSelect), "hud.multiselect").ToggleMode = true;
+                wanted.Add((HudCommand.MultiSelect, HudArt.Painted(PaintedIcon.MultiSelect), "hud.multiselect", true));
             }
-            Add(metrics, HudCommand.Minimap, HudArt.Painted(PaintedIcon.Minimap), "hud.minimap").ToggleMode = true;
+            wanted.Add((HudCommand.Minimap, HudArt.Painted(PaintedIcon.Minimap), "hud.minimap", true));
         }
         else
         {
-            Add(metrics, HudCommand.Centre, HudArt.Painted(PaintedIcon.Centre), "hud.order.centre");
-            Add(metrics, HudCommand.Minimap, HudArt.Painted(PaintedIcon.Minimap), "hud.minimap").ToggleMode = true;
-            Add(metrics, HudCommand.Help, HudArt.Painted(PaintedIcon.Help), "hud.help");
-            Add(metrics, HudCommand.Objective, HudArt.Painted(PaintedIcon.Objective), "hud.objective");
+            wanted.Add((HudCommand.Centre, HudArt.Painted(PaintedIcon.Centre), "hud.order.centre", false));
+            wanted.Add((HudCommand.Minimap, HudArt.Painted(PaintedIcon.Minimap), "hud.minimap", true));
+            wanted.Add((HudCommand.Help, HudArt.Painted(PaintedIcon.Help), "hud.help", false));
+            wanted.Add((HudCommand.Objective, HudArt.Painted(PaintedIcon.Objective), "hud.objective", false));
         }
-        foreach (HudCommand command in wasOn)
-        {
-            SetToggled(command, true);
-        }
+        return wanted;
     }
 
     /// <summary>Shows the state of the toggle buttons.</summary>
@@ -138,12 +189,4 @@ public partial class CommandBar : BoxContainer
 
     /// <summary>How many buttons the bar has.</summary>
     public int Count => buttons.Count;
-
-    private Button Add(HudMetrics metrics, HudCommand command, Texture2D icon, string tip)
-    {
-        Button button = HudWidgets.IconButton(metrics, icon, tip, () => Pressed?.Invoke(command), name: command + "Button");
-        buttons[command] = button;
-        AddChild(button);
-        return button;
-    }
 }

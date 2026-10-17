@@ -56,6 +56,7 @@ public partial class BuildMenu : HudPopup
                 Close();
                 actions.BeginPlacement(chosen);
             };
+            button.GuiInput += input => DragOut(input, chosen, button);
             HBoxContainer row = HudPanels.Row(6);
             row.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
             row.OffsetLeft = 4;
@@ -79,6 +80,40 @@ public partial class BuildMenu : HudPopup
             button.AddChild(row);
             Content.AddChild(button);
         }
+    }
+
+    private bool draggedOut, lifted;
+
+    /// <summary>
+    /// With a finger, a building is dragged out of the menu onto the map: once the finger pressed
+    /// on its entry leaves the menu, the menu closes and the ghost comes out under the finger
+    /// (a drag inside the menu scrolls the list as usual).
+    /// </summary>
+    private void DragOut(InputEvent input, int kind, Control entry)
+    {
+        if (draggedOut && input is InputEventScreenTouch { Pressed: false })
+        {
+            // Lifted before the menu closed (a quick flick): the ghost stays where the finger left it.
+            lifted = true;
+            return;
+        }
+        if (draggedOut || !Metrics.Touch || input is not InputEventScreenDrag drag)
+        {
+            return;
+        }
+        Vector2 at = entry.GetGlobalTransformWithCanvas() * drag.Position;
+        if (GetGlobalRect().HasPoint(at))
+        {
+            return;
+        }
+        draggedOut = true;
+        int finger = drag.Index;
+        // Not while the entry is handling the event: the menu leaves the screen right after it.
+        Callable.From(() =>
+        {
+            Close();
+            actions.DragPlacement(kind, lifted ? -1 : finger, at);
+        }).CallDeferred();
     }
 
     /// <summary>The cost icons and amounts; an amount the tribe lacks now is dimmed.</summary>
