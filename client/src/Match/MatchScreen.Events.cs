@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Godot;
 using Tribes.Client.App;
+using Tribes.Client.Audio;
 using Tribes.Client.MatchPlay.Dev;
 using Tribes.Client.MatchPlay.Hud;
 using Tribes.Client.MatchPlay.Logic;
@@ -202,6 +203,7 @@ public partial class MatchScreen
     {
         foreach (GameEvent e in events)
         {
+            PlayIfSeen(e);
             switch (e)
             {
                 case NoticeEvent notice:
@@ -259,6 +261,23 @@ public partial class MatchScreen
         }
     }
 
+    /// <summary>
+    /// Plays the sound of a blow or a throw the player sees: on a cell visible to the viewer and on
+    /// the screen now (nothing out of sight is heard, so sounds tell no more than the picture).
+    /// </summary>
+    private void PlayIfSeen(GameEvent happening)
+    {
+        if (SoundEffects.Instance is { } sounds && SoundCues.Seen(World, happening) is { } heard
+            && Sight.IsVisible(heard.Cell) && OnScreen(heard.Cell))
+        {
+            sounds.Play(heard.Sound);
+        }
+    }
+
+    /// <summary>Whether the middle of <paramref name="cell"/> is inside the screen.</summary>
+    private bool OnScreen(Tribes.Core.Content.GridPoint cell) => GetViewportRect().HasPoint(rig.MapToScreen(new Vector2(
+        (cell.X + 0.5f) * Tribes.Client.World.WorldView.CellWidth, (cell.Y + 0.5f) * Tribes.Client.World.WorldView.CellHeight)));
+
     private void ShowNotice(NoticeEvent notice)
     {
         // Each player's tribe gets its own notices; watchers of a match with other people get none.
@@ -268,6 +287,7 @@ public partial class MatchScreen
             return;
         }
         MatchDev.Log($"MATCH_NOTICE kind={notice.Kind} tribe={notice.Tribe} local={Tribe} shown=True");
+        SoundEffects.Instance?.Play(SoundCues.ForNotice(notice.Kind));
         bool aboutUnit = notice.Kind is UnitBornNotice or UnitDiedNotice;
         (int, int)? place = notice.X > 0 || notice.Y > 0 ? (notice.X, notice.Y) : null;
         hud.Messages.Add(GameTexts.Notice(World, notice.Kind, aboutUnit ? notice.Value : 0), MessageFeed.FaceFor(notice.Kind), place);
@@ -320,6 +340,7 @@ public partial class MatchScreen
             return;
         }
         MatchDev.Log($"MATCH_HINT hint={hint.Hint} tribe={hint.Tribe} local={Tribe} shown=True");
+        SoundEffects.Instance?.Play(SoundCues.Hint);
         if (runner.IsNetwork)
         {
             // Nobody pauses a match with other people: the hint goes to the message list instead.
@@ -473,6 +494,7 @@ public partial class MatchScreen
         }
         resultsShown = true;
         CancelMode();
+        SoundEffects.Instance?.Play(SoundCues.ForResult(victory));
         bool campaign = request.Mode == MatchMode.Campaign && !runner.IsNetwork;
         if (campaign)
         {

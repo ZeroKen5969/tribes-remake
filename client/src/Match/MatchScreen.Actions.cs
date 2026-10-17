@@ -219,6 +219,7 @@ public partial class MatchScreen
             ? new PlaceTrap(Tribe, p.Armoury, p.Kind, ghostOrigin)
             : new PlaceBuilding(Tribe, p.Kind, ghostOrigin);
         Send(order);
+        Tribes.Client.Audio.SoundEffects.Instance?.Play(SoundCues.Place);
         if (!Godot.Input.IsKeyPressed(Key.Shift))
         {
             CancelMode();

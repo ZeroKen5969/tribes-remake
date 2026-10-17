@@ -161,6 +161,7 @@ public partial class MatchScreen
                 break;
             case TapAction.Move:
                 Send(TapRules.Move(Tribe, selection, pick, hurry));
+                Tribes.Client.Audio.SoundEffects.Instance?.Play(SoundCues.Order);
                 overlay.ShowOrderFeedback(pick.Cell, pick.Kind is PickKind.OtherUnit or PickKind.Animal or PickKind.OtherBuilding,
                     TargetMarks.Mark(World, Tribe, Sight, pick.Cell));
                 break;
@@ -200,6 +201,7 @@ public partial class MatchScreen
         if (metrics.Touch && selection.HasUnits && !Spectating && !multiSelect && pick.Kind is not (PickKind.OwnUnit or PickKind.Outside))
         {
             Send(TapRules.Move(Tribe, selection, pick, hurry: true));
+            Tribes.Client.Audio.SoundEffects.Instance?.Play(SoundCues.Order);
             overlay.ShowOrderFeedback(pick.Cell, pick.Kind is PickKind.OtherUnit or PickKind.Animal or PickKind.OtherBuilding,
                 TargetMarks.Mark(World, Tribe, Sight, pick.Cell));
             return;

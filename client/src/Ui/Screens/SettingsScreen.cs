@@ -48,7 +48,13 @@ public partial class SettingsScreen : ScreenBase
             settings.MusicVolume = value;
             MusicPlayer.Instance?.ApplyVolume();
         }));
-        rows.AddChild(VolumeRow("settings.effects", settings.EffectsVolume, value => settings.EffectsVolume = value));
+        rows.AddChild(VolumeRow("settings.effects", settings.EffectsVolume, value =>
+        {
+            settings.EffectsVolume = value;
+            SoundEffects.Instance?.ApplyVolume();
+            // A sample at the new volume (its cooldown keeps a drag from rattling).
+            SoundEffects.Instance?.Play(Tribes.Client.MatchPlay.Logic.SoundCues.Hint);
+        }));
 
         OptionButton scale = UiFactory.Options(["settings.scale.1", "settings.scale.2", "settings.scale.3"], settings.InterfaceScale - 1, index =>
         {

@@ -51,6 +51,8 @@ dotnet test tests/Tribes.Graphics.Tests --collect:"XPlat Code Coverage" --result
 | `data/client/ui.json` | 面板、介面圖示、顏色、整張圖片 |
 | `data/client/fonts.json` | 原版點陣字的排字規則 |
 | `data/client/music.json` | 歌曲與播放時機 |
+| `data/assets/sfx/*.ogg` | 16 個音效（Ogg Vorbis，44.1 kHz 立體聲；`tools/Tribes.SoundForge` 產生，見「音效」） |
+| `data/client/sounds.json` | 音效清單 |
 | `data/client/strings/en.json`、`fr`、`it`、`de`、`es`、`zh-TW` | 各語言字串 |
 
 圖片保留原檔的像素資料與調色盤，只拿掉 gAMA、tEXt 等不影響像素的區塊，任何解碼器讀到的都是原版顯示的顏色。原圖只有完全不透明或完全透明的像素。Godot 以 Lossless 匯入、最近鄰取樣（專案已設 `default_texture_filter=0`）即保持原樣。
@@ -199,6 +201,19 @@ DrawList tile = composers.Terrain.ComposeTile(tileId);
 ## 音樂（`music.json`）
 
 五首原版 MIDI（`sa` 依 `ResourceLoader` 寫死的起點切出），以 SoundFont 合成為 OGG（尾端多留 2 秒餘音，峰值超過 0.95 時整首等比例降低）。`moods` 是原版的選曲：`normal`（選單與一般遊玩，0、1 隨機）、`tension`（地圖畫面上有全軍令進行中，或電腦方的進攻波正指向關卡設定的目標，2、3）、`combat`（地圖畫面上 50 幀內有戰鬥，4）；一首播完再隨機挑一首。原版沒有音效，只有這五首配樂。
+
+## 音效（`sounds.json`）
+
+原版沒有音效。重製版的音效由 `tools/Tribes.SoundForge` 以合成配樂用的同一套 SoundFont 合成：每個音效是幾個 General MIDI 音符（木魚、響棒、邦哥鼓、落地鼓、太鼓、卡林巴琴、尺八、排笛、法國號），聲音和原版配樂相配。音符寫在 `tools/Tribes.SoundForge/Recipes.cs`；每個音效縮放到自己的峰值（決定彼此的大小聲），結尾 40 ms 淡出。合成出來沒有聲音（SoundFont 少了某個樂器）時工具會報錯。
+
+```bash
+dotnet run --project tools/Tribes.SoundForge -c Release -- \n  --soundfont work/downloads/fluidr3-gm-extracted/FluidR3_GM.sf2 --assets data/assets --client data/client
+bash tools/sync-assets.sh   # 或建置用戶端，複製到 client/assets
+work/godot-4.7.2/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable_mono_win64_console.exe --headless --path client --import
+cp client/assets/sfx/*.ogg.import data/assets/sfx/   # 新音效的匯入設定放回內容 repo
+```
+
+`sounds.json` 的每一項：`name`（遊戲用的名稱）、`ogg`（相對 `client/assets` 的路徑）、`seconds`、`cooldownMs`（這段時間內再要求播放就略過）。同樣的輸入得到同樣的檔案。
 
 ## 第三方素材
 

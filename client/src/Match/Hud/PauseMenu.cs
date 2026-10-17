@@ -190,6 +190,15 @@ public partial class MatchSettingsPanel : HudPopup
             GameApp.Instance.ApplySettings();
         };
         Content.AddChild(UiFactory.Row("settings.music", music));
+        var effects = new HSlider { Name = "Effects", MinValue = 0, MaxValue = 1, Step = 0.05, Value = settings.EffectsVolume, CustomMinimumSize = new Vector2(0, PixelTheme.RowHeight) };
+        effects.ValueChanged += value =>
+        {
+            settings.EffectsVolume = value;
+            GameApp.Instance.ApplySettings();
+            // A sample at the new volume (its cooldown keeps a drag from rattling).
+            Tribes.Client.Audio.SoundEffects.Instance?.Play(Tribes.Client.MatchPlay.Logic.SoundCues.Hint);
+        };
+        Content.AddChild(UiFactory.Row("settings.effects", effects));
         var hints = new CheckBox { Name = "Hints", Text = "settings.hints", ButtonPressed = actions.World.Hints.Enabled };
         hints.Toggled += on =>
         {

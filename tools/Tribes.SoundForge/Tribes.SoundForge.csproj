@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Renders the game's sound effects (data/assets/sfx) and their list (data/client/sounds.json):
+    short phrases of General MIDI drums and instruments played through the SoundFont the music is
+    rendered with, so they sound like the original's songs. See docs/ASSETS.md.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Tribes.SoundForge</RootNamespace>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MeltySynth" Version="2.4.1" />
+    <PackageReference Include="OggVorbisEncoder" Version="1.2.2" />
+  </ItemGroup>
+
+</Project>

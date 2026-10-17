@@ -107,13 +107,14 @@ public partial class GameApp : Node
         }
     }
 
-    /// <summary>Applies the settings that change how the game looks and sounds: full screen, interface scale, language, music volume.</summary>
+    /// <summary>Applies the settings that change how the game looks and sounds: full screen, interface scale, language, music and effects volume.</summary>
     public void ApplySettings()
     {
         ApplyWindowMode();
         FitPixelScale();
         UiText.Apply(Settings.Language);
         MusicPlayer.Instance?.ApplyVolume();
+        SoundEffects.Instance?.ApplyVolume();
     }
 
     /// <summary>The window went between full screen and a window (the setting, F11 or Alt+Enter).</summary>

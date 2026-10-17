@@ -24,6 +24,7 @@ config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
 
 App="*res://src/App/GameApp.cs"
 Music="*res://src/Audio/MusicPlayer.cs"
+Sounds="*res://src/Audio/SoundEffects.cs"
 PlatformCheck="*res://src/Platform/Dev/PlatformCheck.cs"
 MatchScript="*res://src/Match/Dev/MatchScript.cs"
 
