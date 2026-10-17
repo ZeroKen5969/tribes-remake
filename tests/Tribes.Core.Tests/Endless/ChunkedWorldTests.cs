@@ -1,6 +1,9 @@
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Tribes.Core.Content;
 using Tribes.Core.Maps;
+using Tribes.Core.Simulation;
 using Tribes.Core.Tests.MultiTribe;
 using Tribes.Core.World;
 using Xunit;
@@ -175,5 +178,36 @@ public sealed class ChunkedWorldTests
 
         Assert.Equal(WorldSnapshot.Hash(a), same);
         Assert.NotEqual(WorldSnapshot.Hash(a), WorldSnapshot.Hash(b));
+    }
+
+    [Fact]
+    public void SeenBuildings_AreRevealedOnceACellIsExplored_AfterLooksThatFoundNone()
+    {
+        GameSimulation game = EndlessWorlds.Start(humans: 1, computers: 1, seed: 3);
+        GameWorld world = game.World;
+        FogOfWar fog = world.Fog(0);
+        Building far = Enumerable.Range(1, world.BuildingSlots).Select(world.Building)
+            .First(b => b.InUse && b.Tribe == 1 && !FootprintOf(world, b).Any(fog.IsExplored));
+
+        game.Rules.Sight.RevealSeenBuildings();
+        game.Rules.Sight.RevealSeenBuildings();
+        Assert.DoesNotContain(FootprintOf(world, far), fog.IsExplored);
+
+        fog.SetExplored(new GridPoint(far.X, far.Y), true);
+        game.Rules.Sight.RevealSeenBuildings();
+
+        Assert.All(FootprintOf(world, far), cell => Assert.True(fog.IsExplored(cell), $"{cell} unexplored"));
+    }
+
+    private static IEnumerable<GridPoint> FootprintOf(GameWorld world, Building building)
+    {
+        var kind = world.Content.Rules.Buildings.Kinds[building.Kind];
+        for (int y = building.Y; y < building.Y + kind.Height; y++)
+        {
+            for (int x = building.X; x < building.X + kind.Width; x++)
+            {
+                yield return new GridPoint(x, y);
+            }
+        }
     }
 }

@@ -46,6 +46,14 @@ internal sealed class SightSystem
     /// </summary>
     private readonly Dictionary<int, long[]> fullyExplored = new();
 
+    /// <summary>
+    /// For each human-ruled tribe on an endless map, the buildings none of whose cells it had
+    /// explored when last looked at, by slot: the building's place and kind and the revisions of the
+    /// tribe's fog over it then. While both stay the same nothing there has been explored since, so
+    /// the building needs no look (memory only: only work is saved).
+    /// </summary>
+    private readonly Dictionary<int, UnexploredLook[]> unexplored = new();
+
     /// <summary>Copies of the human-ruled tribes' own sight while allies share it (memory only).</summary>
     private readonly Dictionary<int, VisibleCopy> sightCopies = new();
 
@@ -358,7 +366,20 @@ internal sealed class SightSystem
                 {
                     continue;
                 }
+                long? revision = FogRevisionUnder(tribe.Index, building, kind);
+                if (revision is long before && StillUnexplored(tribe.Index, building, before))
+                {
+                    continue;
+                }
                 (bool any, bool every) = Explored(building, kind, tribe.Index);
+                if (!any && !every)
+                {
+                    if (revision is long now)
+                    {
+                        NoteUnexplored(tribe.Index, building, now);
+                    }
+                    continue;
+                }
                 if (any && !every)
                 {
                     RevealRect(tribe.Index, FogLayer.Explored, building.X, building.Y, kind.Width, kind.Height);
@@ -455,6 +476,48 @@ internal sealed class SightSystem
         }
         known[building.Id] = Footprint(building);
     }
+
+    /// <summary>
+    /// The revisions of <paramref name="tribe"/>'s fog over the chunks under <paramref name="building"/>
+    /// added up (it grows whenever any of them may have changed), or null on a fixed map.
+    /// </summary>
+    private long? FogRevisionUnder(int tribe, Building building, BuildingKind kind)
+    {
+        if (world.Fog(tribe).Chunks is not { } chunks)
+        {
+            return null;
+        }
+        long revision = 0;
+        for (int cy = building.Y >> WorldMap.ChunkShift; cy <= (building.Y + kind.Height - 1) >> WorldMap.ChunkShift; cy++)
+        {
+            for (int cx = building.X >> WorldMap.ChunkShift; cx <= (building.X + kind.Width - 1) >> WorldMap.ChunkShift; cx++)
+            {
+                if (world.Map.Chunk(new ChunkCoord(cx, cy)) is { } chunk)
+                {
+                    revision += chunks.ChunkRevision(chunk.Ordinal);
+                }
+            }
+        }
+        return revision;
+    }
+
+    private bool StillUnexplored(int tribe, Building building, long revision) =>
+        unexplored.TryGetValue(tribe, out UnexploredLook[]? looks) && building.Id < looks.Length
+        && looks[building.Id] == new UnexploredLook(Footprint(building), revision);
+
+    private void NoteUnexplored(int tribe, Building building, long revision)
+    {
+        if (!unexplored.TryGetValue(tribe, out UnexploredLook[]? looks) || looks.Length <= building.Id)
+        {
+            var grown = new UnexploredLook[world.BuildingSlots + 1];
+            looks?.CopyTo(grown, 0);
+            unexplored[tribe] = looks = grown;
+        }
+        looks[building.Id] = new UnexploredLook(Footprint(building), revision);
+    }
+
+    /// <summary>A building's place and kind, and the revisions of a tribe's fog over it, when none of it was explored.</summary>
+    private readonly record struct UnexploredLook(long Footprint, long FogRevision);
 
     private void RevealOnce(Building building, BuildingKind kind, int tribe)
     {
