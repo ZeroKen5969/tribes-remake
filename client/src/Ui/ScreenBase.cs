@@ -78,7 +78,7 @@ public abstract partial class ScreenBase : Control
     /// <summary>Creates the screen's controls.</summary>
     protected abstract void Build();
 
-    /// <summary>Arranges the controls for a portrait or landscape screen; called on every resize.</summary>
+    /// <summary>Arranges the controls for a portrait or landscape screen; called when the screen turns and when the room kept from its edges changes.</summary>
     protected virtual void Layout(bool isPortrait)
     {
     }
@@ -90,7 +90,12 @@ public abstract partial class ScreenBase : Control
 
     private void OnLanguageChanged() => RefreshTexts();
 
-    private void OnSafeMarginsChanged() => CallDeferred(MethodName.UpdateLayout);
+    private void OnSafeMarginsChanged()
+    {
+        // Screens place things inside the room kept from the edges, so they lay out again.
+        laidOut = false;
+        CallDeferred(MethodName.UpdateLayout);
+    }
 
     /// <summary>The room kept from each screen edge (cut-outs, rounded corners, the player's setting), in logical pixels.</summary>
     protected static Logic.EdgeMargins SafeMargins => GameApp.Instance.SafeMargins;
@@ -172,7 +177,13 @@ public abstract partial class ScreenBase : Control
         };
         page.AddChild(content);
         body.AddChild(page);
-        Callable.From(() => KeepListsOpen(content)).CallDeferred();
+        Callable.From(() =>
+        {
+            if (IsInstanceValid(content))
+            {
+                KeepListsOpen(content);
+            }
+        }).CallDeferred();
         return content;
     }
 

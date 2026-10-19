@@ -31,7 +31,7 @@ public partial class PlacementBar : PanelContainer
     /// <summary>Whether a placement or pick is going on.</summary>
     public bool Active { get; private set; }
 
-    /// <summary>The height the bar needs (at least what its frame and buttons take, so it never grows over the bars below it).</summary>
+    /// <summary>The height the bar needs (at least what its frame and buttons take, so it never grows over the bars below it); first rebuilds the buttons if their size changed.</summary>
     public float WantedHeight
     {
         get
@@ -83,7 +83,7 @@ public partial class PlacementBar : PanelContainer
                 old.QueueFree();
             }
         }
-        confirm =HudWidgets.IconButton(m, PixelTheme.TickIcon, "hud.place.confirm", () => Confirmed?.Invoke(), name: "ConfirmButton");
+        confirm = HudWidgets.IconButton(m, PixelTheme.TickIcon, "hud.place.confirm", () => Confirmed?.Invoke(), name: "ConfirmButton");
         confirm.Disabled = disabled;
         confirm.Visible = shown;
         row.AddChild(confirm);

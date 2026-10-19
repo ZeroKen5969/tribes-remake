@@ -12,6 +12,7 @@ namespace Tribes.Client.Ui;
 /// </summary>
 public static class TouchScrolling
 {
+    private static readonly StringName Watched = "touch_scrolling";
     private static bool installed;
 
     /// <summary>
@@ -43,7 +44,12 @@ public static class TouchScrolling
                 {
                     scroll.ScrollDeadzone = ScrollSlop;
                 }
-                scroll.ScrollStarted += () => LetGo(scroll);
+                // Once per list (a list moved elsewhere enters the tree again).
+                if (!scroll.HasMeta(Watched))
+                {
+                    scroll.SetMeta(Watched, true);
+                    scroll.ScrollStarted += () => LetGo(scroll);
+                }
                 break;
             case BaseButton or PanelContainer or Panel when ((Control)node).MouseFilter == Control.MouseFilterEnum.Stop && InList(node):
                 ((Control)node).MouseFilter = Control.MouseFilterEnum.Pass;

@@ -82,28 +82,48 @@ public partial class BuildMenu : HudPopup
         }
     }
 
-    private bool draggedOut, lifted;
+    private bool draggedOut, lifted, listScrolled, flicked;
+
+    /// <inheritdoc/>
+    public override void _Ready()
+    {
+        base._Ready();
+        ContentScroll.ScrollStarted += () => listScrolled = true;
+    }
 
     /// <summary>
     /// With a finger, a building is dragged out of the menu onto the map: once the finger pressed
-    /// on its entry leaves the menu, the menu closes and the ghost comes out under the finger
-    /// (a drag inside the menu scrolls the list as usual).
+    /// on its entry leaves the menu, the menu closes and the ghost comes out under the finger.
+    /// A finger that scrolled the list and then left through the top or bottom flicked the list
+    /// (a flick may end past its edge); one that leaves through a side drags the building out.
     /// </summary>
     private void DragOut(InputEvent input, int kind, Control entry)
     {
+        if (input is InputEventScreenTouch { Pressed: true })
+        {
+            listScrolled = false;
+            flicked = false;
+            return;
+        }
         if (draggedOut && input is InputEventScreenTouch { Pressed: false })
         {
             // Lifted before the menu closed (a quick flick): the ghost stays where the finger left it.
             lifted = true;
             return;
         }
-        if (draggedOut || !Metrics.Touch || input is not InputEventScreenDrag drag)
+        if (draggedOut || flicked || !Metrics.Touch || input is not InputEventScreenDrag drag)
         {
             return;
         }
         Vector2 at = entry.GetGlobalTransformWithCanvas() * drag.Position;
-        if (GetGlobalRect().HasPoint(at))
+        Rect2 menu = GetGlobalRect();
+        if (menu.HasPoint(at))
         {
+            return;
+        }
+        if (listScrolled && at.X >= menu.Position.X && at.X <= menu.End.X)
+        {
+            flicked = true;
             return;
         }
         draggedOut = true;
@@ -111,6 +131,11 @@ public partial class BuildMenu : HudPopup
         // Not while the entry is handling the event: the menu leaves the screen right after it.
         Callable.From(() =>
         {
+            if (!IsInstanceValid(this))
+            {
+                // Something else closed the menu in the same frame.
+                return;
+            }
             Close();
             actions.DragPlacement(kind, lifted ? -1 : finger, at);
         }).CallDeferred();

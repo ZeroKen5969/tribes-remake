@@ -37,6 +37,9 @@ public partial class HudPopup : PanelContainer
     /// <summary>Where the content goes (it scrolls when it does not fit).</summary>
     public VBoxContainer Content { get; private set; } = null!;
 
+    /// <summary>The list <see cref="Content"/> scrolls in.</summary>
+    protected ScrollContainer ContentScroll => scroll;
+
     /// <summary>A row under the content that never scrolls away (the buttons of dialogs).</summary>
     public HFlowContainer Footer { get; private set; } = null!;
 

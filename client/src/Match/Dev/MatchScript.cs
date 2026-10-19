@@ -321,7 +321,7 @@ public partial class MatchScript : Node
                 Dump(screen);
                 break;
             case "reach":
-                // Lists the buttons that cannot be pressed without failing the script.
+                // Lists the buttons that cannot be pressed (only "expect reachable" fails the script).
                 UiReach.Print(UiReach.Check(GetTree().Root, UiReach.SafeScreen(GetViewport())), line.Args.Count > 0 ? line.Args[0] : $"line{index}");
                 break;
             case "skipscenes":

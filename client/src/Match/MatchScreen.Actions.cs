@@ -119,9 +119,11 @@ public partial class MatchScreen
         ghostOrigin = FootprintCheck.OriginUnder(World, kind, middle.X, middle.Y, WorldView.CellWidth, WorldView.CellHeight);
         ghostHold = GhostDrag.Hold(ghostOrigin, CellAt(map));
         RefreshGhost();
+        draggedOutAt = null;
         if (finger >= 0)
         {
             gestures.TakeOverGrab(finger, screen);
+            draggedOutAt = screen;
         }
         MatchDev.Log($"GHOST_DRAG out kind={kind} at={ghostOrigin.X},{ghostOrigin.Y} held={finger >= 0}");
     }
@@ -131,6 +133,13 @@ public partial class MatchScreen
 
     /// <summary>Fastest the view scrolls while the ghost is dragged against an edge, in screen pixels a second.</summary>
     private const float DragScrollSpeed = 360;
+
+    /// <summary>
+    /// Where the finger came out of the build menu with a ghost: it comes out at the menu's edge,
+    /// which can be near an edge of the map part of the screen, so the view only scrolls once the
+    /// finger has moved on (out of the edge band, or a button's width away).
+    /// </summary>
+    private Vector2? draggedOutAt;
 
     /// <summary>
     /// Whether a finger going down at <paramref name="screen"/> takes hold of the ghost: with a
@@ -151,6 +160,7 @@ public partial class MatchScreen
             return false;
         }
         ghostHold = GhostDrag.Hold(ghostOrigin, CellAt(map));
+        draggedOutAt = null;
         return true;
     }
 
@@ -187,6 +197,14 @@ public partial class MatchScreen
         Vector2 at = gestures.GrabPosition;
         System.Numerics.Vector2 speed = GhostDrag.EdgeScroll(new System.Numerics.Vector2(at.X, at.Y),
             new System.Numerics.Vector2(free.Position.X, free.Position.Y), new System.Numerics.Vector2(free.End.X, free.End.Y), metrics.Button, DragScrollSpeed);
+        if (draggedOutAt is { } from)
+        {
+            if (speed != System.Numerics.Vector2.Zero && at.DistanceTo(from) < metrics.Button)
+            {
+                return;
+            }
+            draggedOutAt = null;
+        }
         if (speed == System.Numerics.Vector2.Zero)
         {
             return;
