@@ -14,6 +14,7 @@ Godot 4.7.2 .NET 用戶端（`client/`）的 Windows 與 Android 建置、簽章
 | Godot 4.7.2 .NET 編輯器 | `work/godot-4.7.2/Godot_v4.7.2-stable_mono_win64/` | 自帶模式（資料夾內有 `_sc_`），編輯器設定與匯出範本都在其 `editor_data/` 下；腳本用 `GODOT_HOME` 可改用其他位置 |
 | 匯出範本 | `editor_data/export_templates/4.7.2.stable.mono/` | 含 `android_source.zip`（Android Gradle 建置範本）與 Windows 範本 |
 | .NET SDK 9 | 系統安裝 | 用戶端是 `net9.0`（Android 匯出需要） |
+| Photon .NET SDK 5.1.20 | `third_party/photon/` | 不在儲存庫裡（授權不允許轉散布），登入 Photon 帳號下載後照 `third_party/photon/README.md` 放好；沒放時整個方案建置不起來 |
 | JDK 17 | `tools/jdk17_unz/jdk-17.0.20.1+1` | 編輯器設定 `export/android/java_sdk_path` 指向這裡；`keytool`、`jar` 也用它 |
 | Android SDK | `%LOCALAPPDATA%\Android\Sdk` | 編輯器設定 `export/android/android_sdk_path` 指向這裡；`platform-tools`（adb）與任一版 `build-tools`（apksigner） |
 | 網路 | | 第一次 Android 建置時，Gradle 會下載 Gradle 8.11.1、Android Gradle Plugin 與函式庫（存到 `~/.gradle`），並把 Android 36 平台與 build-tools 36.1.0 裝進 Android SDK（SDK 授權必須已同意） |

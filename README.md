@@ -33,12 +33,12 @@ git clone <tribes-original 的網址> original     # 選用
 | `client/` | Godot 用戶端（[CLIENT.md](docs/CLIENT.md)）；`client/assets/` 是 `data/assets/` 的複本 |
 | `tests/` | xUnit 測試；`Tribes.Client.*.Tests` 不在 `Tribes.sln`，要個別執行 |
 | `tools/` | 打包、發行、背景執行 Godot、連線與平台檢查（[BUILD.md](docs/BUILD.md)） |
-| `third_party/photon` | Photon Realtime .NET SDK |
+| `third_party/photon` | Photon Realtime .NET SDK 的位置；SDK 的檔案不在儲存庫裡，要自己下載放進來（見該目錄的 README） |
 | `secrets/` | 權杖、簽章金鑰與 Photon AppId，不進儲存庫（[BUILD.md](docs/BUILD.md)「機密檔案」） |
 
 ## 建置與測試
 
-需要 .NET SDK 9；Godot、JDK 17、Android SDK 的位置見 [BUILD.md](docs/BUILD.md)。指令都在根目錄用 Git Bash 執行。
+需要 .NET SDK 9 與放進 `third_party/photon/` 的 Photon .NET SDK（[third_party/photon/README.md](third_party/photon/README.md)）；Godot、JDK 17、Android SDK 的位置見 [BUILD.md](docs/BUILD.md)。指令都在根目錄用 Git Bash 執行。
 
 ```bash
 dotnet build Tribes.sln -c Release

@@ -21,6 +21,10 @@ client/content/
 client/assets/
 
 # Downloaded tools and SDKs (see docs/BUILD.md for where to get them)
+# The Photon SDK's own files: its license does not allow passing them on (third_party/photon/README.md).
+third_party/photon/lib/
+third_party/photon/license.txt
+third_party/photon/PhotonRealtime/*.cs
 tools/jdk17.zip
 tools/jdk17_unz/
 tools/cmdline-tools.zip

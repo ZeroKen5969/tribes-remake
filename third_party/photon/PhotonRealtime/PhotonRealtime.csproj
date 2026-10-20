@@ -32,4 +32,10 @@
     </Reference>
   </ItemGroup>
 
+  <!-- The SDK's files are not in the repository (its license does not allow passing them on): stop with where to get them. -->
+  <Target Name="RequirePhotonSdk" BeforeTargets="ResolveAssemblyReferences;CoreCompile">
+    <Error Condition="!Exists('..\lib\netstandard2.0\PhotonClient.dll') Or !Exists('RealtimeClient.cs')"
+           Text="The Photon SDK is missing from third_party/photon: download Photon .NET SDK 5.1.20 and copy its files there as third_party/photon/README.md describes." />
+  </Target>
+
 </Project>
