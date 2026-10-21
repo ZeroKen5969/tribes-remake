@@ -21,7 +21,8 @@ public sealed class SlotFixtureTests(ITestOutputHelper output)
 {
     private static readonly Guid FixtureHostKey = new("5a7e5a7e-0000-4000-8000-000000000001");
 
-    private static string Folder => Path.Combine(TestContent.RepoRoot(), "tests", "Tribes.Session.Tests", "Fixtures");
+    /// <summary>The save fixtures, in the content repository (see SaveFixtureTests).</summary>
+    private static string Folder => Path.Combine(TestContent.RepoRoot(), "data", "fixtures", "saves");
 
     [Fact]
     public void OlderMatchSaves_GoOnWithSlotsThatGrow()
