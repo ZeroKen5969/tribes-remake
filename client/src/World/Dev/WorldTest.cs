@@ -46,11 +46,14 @@ namespace Tribes.Client.World.Dev;
 /// <item><c>--capture=DIR</c>: saves <c>--capture-count</c> consecutive pictures (from the
 /// <c>--capture-start</c>th) as DIR/frameNNN.png and quits, for checking motion.</item>
 /// </list>
-/// Paths are res://, user:// or file paths; relative paths are taken from res://.
+/// Paths are res://, user:// or file paths; relative paths are taken from res://. The dev snapshots
+/// and replays are in the original repository (original/reference/snapshots and replays).
 /// </summary>
 public partial class WorldTest : Node2D
 {
-    private const string DefaultWorld = "res://dev/snapshots/s4-f06000.trbw";
+    /// <summary>The world shown without <c>--world</c>: a dev snapshot of the original repository (original/ next to client/).</summary>
+    private static string DefaultWorld =>
+        Path.GetFullPath(Path.Combine(ProjectSettings.GlobalizePath("res://"), "..", "original", "reference", "snapshots", "s4-f06000.trbw")).Replace('\\', '/');
     private const double FpsLogSeconds = 2;
 
     private WorldView view = null!;

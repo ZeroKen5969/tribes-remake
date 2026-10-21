@@ -7,7 +7,7 @@ THQ Wireless 2008 年 J2ME 手機遊戲《Prehistoric Tribes》以 Godot 4.7.2 .
 | 儲存庫 | 放在 | 內容 |
 |---|---|---|
 | `tribes-remake`（這個） | 根目錄 | 規則、用戶端、連線、更新、測試、建置與發行工具 |
-| `tribes-content` | `data/` | 遊戲內容：規則資料表、關卡、地圖、地形、文字（`*.json`），以及圖片、音樂、字型（`data/assets/`） |
+| `tribes-content` | `data/` | 遊戲內容：規則資料表、關卡、地圖、地形、文字（`*.json`），以及圖片、音樂、字型（`data/assets/`）、存檔測試用的舊存檔（`data/fixtures/`） |
 | `tribes-original` | `original/` | 原版還原：Java 還原碼與原版資源、MIDP 移植、C# 翻譯版與對照工具（見該儲存庫的 README） |
 
 建置與遊玩只需要前兩個。`original/` 放好時，`tests/Tribes.Core.Tests`、`tests/Tribes.Graphics.Tests`、`tests/Tribes.Client.World.Tests` 會多編進 `Original/` 底下對照翻譯版、原版資源與原版畫面的測試；沒放時不編這些測試，其他照常建置。

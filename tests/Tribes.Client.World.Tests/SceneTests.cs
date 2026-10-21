@@ -13,7 +13,10 @@ using Xunit;
 
 namespace Tribes.Client.World.Tests;
 
-/// <summary>The repository's data, assets and dev snapshots, loaded once.</summary>
+/// <summary>
+/// The repository's data and assets, loaded once, and the original repository's dev snapshots
+/// (original/reference/snapshots: worlds of the original's maps, used only by the tests in Original/).
+/// </summary>
 internal sealed class Repo
 {
     private static readonly Lazy<Repo> Shared = new(() => new Repo());
@@ -60,122 +63,16 @@ internal sealed class Repo
 
     public RgbaImage Sheet(string id) => sheets[id];
 
-    public string Dev(params string[] parts) => Path.Combine(Root, "client", "dev", Path.Combine(parts));
-
     /// <summary>A path in the original repository's reference data (original/reference).</summary>
     public string OriginalReference(params string[] parts) => Path.Combine(Root, "original", "reference", Path.Combine(parts));
 
     public IEnumerable<string> Snapshots() =>
-        Directory.GetFiles(Dev("snapshots"), "*.trbw").OrderBy(f => f, StringComparer.Ordinal);
+        Directory.GetFiles(OriginalReference("snapshots"), "*.trbw").OrderBy(f => f, StringComparer.Ordinal);
 
     public (GameWorld World, SnapshotView View) Load(string snapshot)
     {
         using FileStream file = File.OpenRead(snapshot);
         return (WorldSnapshot.Load(file, Content), SnapshotView.Parse(File.ReadAllText(Path.ChangeExtension(snapshot, ".json"))));
-    }
-}
-
-/// <summary>The world view's picture against the original's (frames: Original/OriginalFrameTests).</summary>
-public sealed class WorldSceneTests
-{
-    [Fact]
-    public void ProjectileArcsWorkedOutFromTheThrowerEqualTheOriginals()
-    {
-        Repo repo = Repo.Instance;
-        int arcs = 0;
-        foreach (string snapshot in repo.Snapshots())
-        {
-            (GameWorld world, SnapshotView view) = repo.Load(snapshot);
-            foreach (SnapshotArc expected in view.Arcs)
-            {
-                Unit thrower = world.Unit(expected.Unit);
-                (int height, int drop) = ScenePresentation.ThrowHeights(thrower.Action);
-                ProjectileArc? arc = ScenePresentation.ArcOf(world, thrower, height, drop);
-                Assert.NotNull(arc);
-                for (int step = 0; step <= thrower.ProjectileFlightSteps; step++)
-                {
-                    Assert.Equal(expected.Heights[step], arc!.Heights[step]);
-                    Assert.Equal(expected.Frames[step], arc.Frames[step]);
-                }
-                arcs++;
-            }
-        }
-        Assert.True(arcs > 0, "no snapshot has a projectile in flight");
-    }
-
-    [Fact]
-    public void TheSnapshotsShowEveryKindOfThing()
-    {
-        Repo repo = Repo.Instance;
-        var movers = new HashSet<MoverKind>();
-        int effects = 0, labels = 0, skins = 0;
-        foreach (string snapshot in repo.Snapshots())
-        {
-            (GameWorld world, SnapshotView view) = repo.Load(snapshot);
-            var list = new SceneList();
-            new ObjectLayer(repo.Assets).Compose(new SceneRequest(world, view.View, view.Presentation(), view.Marks,
-                new TribeLooks(0, world.Layout.Tribes), true), list);
-            foreach (SceneItem item in list.Items)
-            {
-                movers.Add(item.Mover);
-                labels += item.Part.Sheet == "pi0_26" ? 1 : 0;
-                skins += item.SkinTribe == 1 ? 1 : 0;
-            }
-            effects += view.Effects.Count(e => e[0] > 0);
-        }
-        Assert.Contains(MoverKind.Unit, movers);
-        Assert.Contains(MoverKind.Animal, movers);
-        Assert.Contains(MoverKind.Projectile, movers);
-        Assert.True(effects > 0 && labels > 0 && skins > 0, $"effects {effects}, number glyphs {labels}, computer body parts {skins}");
-    }
-
-    [Fact]
-    public void TheCompositionNeverChangesTheWorld()
-    {
-        Repo repo = Repo.Instance;
-        string snapshot = repo.Snapshots().First(s => s.Contains("s6-f16052", StringComparison.Ordinal));
-        (GameWorld world, SnapshotView view) = repo.Load(snapshot);
-        ulong before = WorldSnapshot.Hash(world);
-        FrameCheck.DrawScreen(world, view, repo.Assets, repo.Sheet);
-        Assert.Equal(before, WorldSnapshot.Hash(world));
-    }
-
-    [Fact]
-    public void APointedBuildingShowsWhatTheOriginalShowsUnderItsCursor()
-    {
-        // A match has no cursor: it passes the selected building (and, with a mouse, the one pointed
-        // at) as pointed, and that building gets its place squares as under the original's cursor.
-        Repo repo = Repo.Instance;
-        RgbColor used = RgbColor.Parse("#f6a800"), free = RgbColor.Parse("#40331d");
-        int Squares(GameWorld world, SnapshotView view, IReadOnlySet<int> pointed)
-        {
-            var list = new SceneList();
-            WorldMarks marks = view.Marks with { CursorCell = null, PointedBuildings = pointed };
-            new ObjectLayer(repo.Assets).Compose(new SceneRequest(world, view.View, view.Presentation(), marks,
-                new TribeLooks(0, world.Layout.Tribes), true), list);
-            return list.Items.Count(i => i.Part.Kind == DrawPartKind.Fill && (i.Part.Color == used || i.Part.Color == free));
-        }
-
-        int checkedBuildings = 0;
-        foreach (string snapshot in repo.Snapshots())
-        {
-            (GameWorld world, SnapshotView view) = repo.Load(snapshot);
-            ViewRect seen = view.View;
-            // The player's buildings on screen that have places (the store has none).
-            foreach (int id in Enumerable.Range(1, world.BuildingSlots))
-            {
-                Building b = world.Building(id);
-                if (b.Tribe != 0 || b.HitPoints <= 0 || b.Kind > 11 || b.Kind == 6
-                    || b.X < seen.Column || b.X >= seen.Column + seen.Columns || b.Y < seen.Row || b.Y >= seen.Row + seen.Rows)
-                {
-                    continue;
-                }
-                Assert.True(Squares(world, view, new HashSet<int> { id }) > 0, $"{snapshot}: building {id} (kind {b.Kind}) pointed at shows no place squares");
-                checkedBuildings++;
-            }
-            Assert.Equal(0, Squares(world, view, new HashSet<int>()));
-        }
-        Assert.True(checkedBuildings > 0, "no snapshot shows one of the player's buildings");
     }
 }
 
@@ -264,8 +161,8 @@ public sealed class TribeColourTests
     }
 }
 
-/// <summary>What only the screen keeps.</summary>
-public sealed class PresentationTests
+/// <summary>What only the screen keeps (smoothing of a snapshot's units: Original/PresentationTests.Snapshots.cs).</summary>
+public sealed partial class PresentationTests
 {
     [Fact]
     public void JavaRandomGivesJavasNumbers()
@@ -295,24 +192,5 @@ public sealed class PresentationTests
             frames++;
         }
         Assert.Equal(9, frames);
-    }
-
-    [Fact]
-    public void ShortMovesAreSmoothedAndJumpsAreNot()
-    {
-        Repo repo = Repo.Instance;
-        (GameWorld world, _) = repo.Load(repo.Snapshots().First());
-        var motion = new MotionTracker();
-        var presentation = new ScenePresentation();
-        Unit unit = Enumerable.Range(1, world.UnitSlots).Select(world.Unit).First(u => u.InUse);
-        motion.OnRuleFrame(world, presentation);
-        unit.OffsetX += 4;
-        motion.OnRuleFrame(world, presentation);
-        Assert.Equal((-4, 0), motion.Offset(MoverKind.Unit, unit.Id, 0f));
-        Assert.Equal((-2, 0), motion.Offset(MoverKind.Unit, unit.Id, 0.5f));
-        Assert.Equal((0, 0), motion.Offset(MoverKind.Unit, unit.Id, 1f));
-        unit.X += 5;
-        motion.OnRuleFrame(world, presentation);
-        Assert.Equal((0, 0), motion.Offset(MoverKind.Unit, unit.Id, 0f));
     }
 }

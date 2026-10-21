@@ -10,9 +10,11 @@ using Xunit.Abstractions;
 namespace Tribes.Session.Tests;
 
 /// <summary>
-/// Saves written by earlier builds (tests/Tribes.Session.Tests/Fixtures/*.save) must load and play
-/// on this build. When a save format changes, the old fixtures stay and new ones are added
-/// (TRIBES_WRITE_FIXTURES=1 writes this build's as the next numbered pair).
+/// Saves written by earlier builds must load and play on this build. They are kept in the content
+/// repository (data/fixtures/saves/*.save): a save holds its map, and the maps are the original's
+/// (the endless worlds are pieced together from them). When a save format changes, the old
+/// fixtures stay and new ones are added (TRIBES_WRITE_FIXTURES=1 writes this build's as the next
+/// numbered ones).
 /// </summary>
 public sealed class SaveFixtureTests(ITestOutputHelper output)
 {
@@ -21,7 +23,7 @@ public sealed class SaveFixtureTests(ITestOutputHelper output)
 
     private const int PlayTicks = 200;
 
-    private static string Folder => Path.Combine(TestContent.RepoRoot(), "tests", "Tribes.Session.Tests", "Fixtures");
+    private static string Folder => Path.Combine(TestContent.RepoRoot(), "data", "fixtures", "saves");
 
     [Fact]
     public void EveryFixture_LoadsAndPlaysOn()

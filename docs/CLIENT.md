@@ -507,8 +507,8 @@ view.WholeBuildings = true;               // 圖伸進畫面上緣的建築也�
 
 | 參數 | 作用 |
 |---|---|
-| `--world=dev/snapshots/s4-f06000.trbw` | 顯示一個世界快照；旁邊有同名 `.json` 時以縮放 1、原版當時的鏡頭與畫面位置顯示，並帶入原版畫面當時的效果、浮動數字與選取標記。視窗是原版的螢幕大小（240×320）時只組原版那一幀的格子，比較大時組滿整個視窗 |
-| `--replay=dev/replays/s6-f07200.trbr` | 以規則的速度循環播放一段連續畫面，鏡頭可自由拖曳縮放 |
+| `--world=PATH` | 顯示一個世界快照（`.trbw`；開發快照在原版儲存庫的 `original/reference/snapshots/`，不給時顯示其中的 `s4-f06000`）；旁邊有同名 `.json` 時以縮放 1、原版當時的鏡頭與畫面位置顯示，並帶入原版畫面當時的效果、浮動數字與選取標記。視窗是原版的螢幕大小（240×320）時只組原版那一幀的格子，比較大時組滿整個視窗 |
+| `--replay=PATH` | 以規則的速度循環播放一段連續畫面（`.trbr`；開發用的在 `original/reference/replays/`），鏡頭可自由拖曳縮放 |
 | `--colours=2,5` | 各部落的顏色（依部落順序） |
 | `--smooth`、`--zoom=Z`、`--free` | 平滑移動；鏡頭縮放；有 `.json` 時仍用自由鏡頭 |
 | `--mission=N` | 第 N 關的開局地圖，沒有單位、全部已探索（大地圖的幀率檢查用） |
@@ -528,15 +528,15 @@ view.WholeBuildings = true;               // 圖伸進畫面上緣的建築也�
 | `--capture=目錄` | 存下連續 `--capture-count` 張畫面（從第 `--capture-start` 張起）後結束 |
 
 ```bash
-bash tools/godot-bg.sh --path client --resolution 240x320 res://scenes/world/world_test.tscn -- --world=dev/snapshots/s4-f06000.trbw
-bash tools/godot-bg.sh --path client -- --ui-screen=../world/world_test --replay=dev/replays/s6-f07200.trbr --smooth --fps-log
+bash tools/godot-bg.sh --path client --resolution 240x320 res://scenes/world/world_test.tscn -- --world="$(pwd -W)/original/reference/snapshots/s4-f06000.trbw"
+bash tools/godot-bg.sh --path client -- --ui-screen=../world/world_test --replay="$(pwd -W)/original/reference/replays/s6-f07200.trbr" --smooth --fps-log
 bash tools/godot-bg.sh --path client res://scenes/world/world_test.tscn -- --endless=7 --humans=4 --computers=32 --explore=600 --run --smooth --minimap --tour=40 --fps-log
 ```
 
 匯出的版本不接受場景路徑參數，從開機畫面以 `--ui-screen=../world/world_test` 進入。Android 模擬器上快照與重播檔不在 APK 裡，先放進 App 的 `user://`：
 
 ```bash
-adb -s emulator-5562 push client/dev/replays/s6-f07200.trbr /data/local/tmp/
+adb -s emulator-5562 push original/reference/replays/s6-f07200.trbr /data/local/tmp/
 adb -s emulator-5562 shell run-as com.prehistoric.tribes.remake cp /data/local/tmp/s6-f07200.trbr files/
 adb -s emulator-5562 shell su 0 am start -n com.prehistoric.tribes.remake/com.godot.game.GodotApp \
   --esa command_line_params "--,--ui-screen=../world/world_test,--replay=user://s6-f07200.trbr,--smooth,--fps-log,--zoom=1"
@@ -544,17 +544,17 @@ adb -s emulator-5562 shell su 0 am start -n com.prehistoric.tribes.remake/com.go
 
 ### 快照與比對
 
-- `client/dev/snapshots/sSEED-fFRAME.trbw`：翻譯版原版在規則模式下以隨機按鍵（種子 1、4、6，第 80 幀起）玩到該幀、世界更新結束時的世界（`WorldSnapshot`）；`.json` 是原版當時的鏡頭、畫面狀態，以及被介面蓋住、比對時跳過的螢幕矩形。
-- `client/dev/snapshots/pokes.txt`：每行 `種子 幀 欄位=值;…`，在該幀畫完後改原版的欄位（用來把鏡頭移到畫面外的戰鬥，例如 `b_I`、`b_K` 與重畫地形的 `z_A=true`）。快照工具與 `reference.sh`（以 DiffHarness 的 `--poke`）都套用，所以兩邊的遊戲仍一模一樣；規則模式下規則不看鏡頭。
-- `client/dev/replays/*.trbr`：連續多幀的快照（gzip）。
-- `original/reference/frames/sSEED/fFRAME.png`（原版儲存庫）：同一局在 Java DiffHarness 畫出的原版畫面；`terrain.txt` 是 DiffHarness `--check-terrain` 列出的、原版地形緩衝與重畫結果不同的格子。沒有 `original/` 時，`tests/Tribes.Client.World.Tests` 不編與原版畫面比對的測試，其他照常執行。
+- `original/reference/snapshots/sSEED-fFRAME.trbw`（原版儲存庫）：翻譯版原版在規則模式下以隨機按鍵（種子 1、4、6，第 80 幀起）玩到該幀、世界更新結束時的世界（`WorldSnapshot`）；`.json` 是原版當時的鏡頭、畫面狀態，以及被介面蓋住、比對時跳過的螢幕矩形。
+- `original/reference/snapshots/pokes.txt`：每行 `種子 幀 欄位=值;…`，在該幀畫完後改原版的欄位（用來把鏡頭移到畫面外的戰鬥，例如 `b_I`、`b_K` 與重畫地形的 `z_A=true`）。快照工具與 `reference.sh`（以 DiffHarness 的 `--poke`）都套用，所以兩邊的遊戲仍一模一樣；規則模式下規則不看鏡頭。
+- `original/reference/replays/*.trbr`：連續多幀的快照（gzip）。
+- `original/reference/frames/sSEED/fFRAME.png`（原版儲存庫）：同一局在 Java DiffHarness 畫出的原版畫面；`terrain.txt` 是 DiffHarness `--check-terrain` 列出的、原版地形緩衝與重畫結果不同的格子。快照、重播檔與這些畫面都含原版的地圖，所以放在原版儲存庫；沒有 `original/` 時，`tests/Tribes.Client.World.Tests` 不編用到它們的測試（快照的繪製與比對），其他照常執行。
 
 ```bash
 T="dotnet run --project original/tools/Tribes.DevSnapshots --"
 $T scan --seed 4 --frames 15000 --every 250                          # 找地圖畫面的幀
 $T busy --seed 6 --frames 20000                                      # 找有效果、浮動數字、投擲物、揚塵的幀
-$T capture --shots "1:12750,13250;4:6000" --out client/dev/snapshots  # 快照（世界格式或原版程式改了要重做）
-$T replay --seed 6 --from 7200 --count 120 --out client/dev/replays/s6-f07200.trbr
+$T capture --shots "1:12750,13250;4:6000" --out original/reference/snapshots  # 快照（世界格式或原版程式改了要重做）
+$T replay --seed 6 --from 7200 --count 120 --out original/reference/replays/s6-f07200.trbr
 bash original/tools/Tribes.DevSnapshots/reference.sh                          # 原版畫面與 terrain.txt
 bash original/tools/Tribes.DevSnapshots/godot-shots.sh work/worldview/godot   # 用戶端截圖（先 dotnet build client）
 $T compare --actual work/worldview/godot --diff work/worldview/diff  # 逐像素比對地圖區
@@ -565,6 +565,6 @@ dotnet test tests/Tribes.Client.World.Tests                          # 不經引
 
 ### 限制
 
-- 這裡的快照是開發用的比對素材（`client/dev/snapshots`），不是玩家的存檔。`original/game/src` 的規則改變後，同一個種子錄下來的遊戲會走向不同，快照與 `reference.sh` 的原版畫面要用上面的 `capture` 重做，並重新挑幀。玩家存檔跨版本的規則見 SESSION.md。
+- 這裡的快照是開發用的比對素材（`original/reference/snapshots`），不是玩家的存檔。`original/game/src` 的規則改變後，同一個種子錄下來的遊戲會走向不同，快照與 `reference.sh` 的原版畫面要用上面的 `capture` 重做，並重新挑幀。玩家存檔跨版本的規則見 SESSION.md。
 - 原版的地形緩衝與捲動歷史有關（見上），重畫結果一定是乾淨的地形，與原版在那些格子會有少量差異。
 - 浮動數字跟原版一樣每畫一次就抖動一次，所以同一個規則幀重畫（例如改了視窗大小）後數字的位置會變。

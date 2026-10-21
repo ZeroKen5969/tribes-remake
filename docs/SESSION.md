@@ -143,7 +143,7 @@
 - 沒有上限：自訂遊戲（`MatchKind.Custom`）開局時就沒有單位與建築上限（`MissionOptions.WithoutLimits`），讀進舊版的自訂遊戲存檔時也拿掉上限（`GameSimulation.LiftLimits`）；對局與無盡世界本來就沒有上限，舊版存檔讀進來後照樣不設限；戰役存檔照原版。
 - 多人存檔：主機更新後仍能續玩自己的對局（格式讀得了就行）；房間改用主機現在的版本，所以其他玩家要用和主機一樣的版本才能加入（連線的規定不變）。存檔標頭仍記著做存檔的版本，紀錄會寫出「以哪個版本續玩哪個版本的存檔」。
 - 讀檔時拒絕：不是存檔（`NotASave`）、比這個版本新的格式（`NewerFormat`，畫面請玩家更新遊戲）、損壞或被改過（雜湊不符、長度不對、欄位超出範圍、多出位元組：`Damaged`）、格式讀得了但內容讀不出來的單人存檔（`OtherVersion`，畫面請玩家更新到最新版）、不是當時的主機（`NotTheHost`）、房間開不起來（連接埠被占用：`CannotHost`）。畫面顯示 `SessionText.SaveProblem` 的說明。
-- 固定的舊存檔：`tests/Tribes.Session.Tests/Fixtures/` 放著各版本做的存檔（`single-player-N.save`、`hosted-match-N.save`），測試會讀每一個並接著玩 200 個 tick。只要有任何存檔或快照格式改了，舊的檔案留著不刪，用 `TRIBES_WRITE_FIXTURES=1` 跑一次 `SaveFixtureTests` 加上新版本的一組，並且繼續讀得了所有舊格式。多人的固定存檔以 `SaveFixtureTests` 裡固定的主機金鑰存檔。
+- 固定的舊存檔：內容儲存庫的 `data/fixtures/saves/` 放著各版本做的存檔（`single-player-N.save`、`hosted-match-N.save`、`endless-single-player-N.save`、`endless-hosted-match-N.save`；存檔含地圖，地圖來自原版，所以不放在這個儲存庫），測試會讀每一個並接著玩 200 個 tick。只要有任何存檔或快照格式改了，舊的檔案留著不刪，用 `TRIBES_WRITE_FIXTURES=1` 跑一次 `SaveFixtureTests` 加上新版本的一組，並且繼續讀得了所有舊格式。多人的固定存檔以 `SaveFixtureTests` 裡固定的主機金鑰存檔。
 
 ### 續玩多人對局
 

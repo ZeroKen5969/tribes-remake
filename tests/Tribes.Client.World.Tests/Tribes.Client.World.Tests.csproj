@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Tests of the client's world view scene code (client/src/World/Scene, engine independent):
-    every dev snapshot drawn by it must equal the original's frame (client/dev/reference, written
-    by tools/Tribes.DevSnapshots/reference.sh), plus the tribe colours, floating numbers, arcs and
-    smooth motion.
+    Tests of the client's world view scene code (client/src/World/Scene, engine independent): the
+    tribe colours, floating numbers, endless maps, terrain tiling and minimap; with the original
+    repository in original/ also every dev snapshot (original/reference/snapshots) drawn by it
+    against the original's frame (original/reference/frames, written by
+    original/tools/Tribes.DevSnapshots/reference.sh), arcs and smooth motion.
   -->
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -34,13 +35,8 @@
     <Compile Include="..\..\client\src\World\Scene\**\*.cs" Link="Scene\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
-  <!-- The comparison with the original's frames (in Original/) builds only when the original repository is cloned into original/. -->
-  <ItemGroup Condition="!Exists('$(MSBuildThisFileDirectory)..\..\original\reference\frames')">
-    <Compile Remove="Original\**" />
-  </ItemGroup>
-
-  <!-- The comparison with the original's frames (in Original/) builds only when the original repository is cloned into original/. -->
-  <ItemGroup Condition="!Exists('$(MSBuildThisFileDirectory)..\..\original\reference\frames')">
+  <!-- The tests on the dev snapshots, worlds of the original's maps (in Original/), build only when the original repository is cloned into original/. -->
+  <ItemGroup Condition="!Exists('$(MSBuildThisFileDirectory)..\..\original\reference\snapshots')">
     <Compile Remove="Original\**" />
   </ItemGroup>
 
