@@ -28,7 +28,7 @@ internal static class ReferenceCases
 
     private static IReadOnlyList<ReferenceCase> Load()
     {
-        using var file = File.OpenRead(TestPaths.Reference("reference-cases.txt.gz"));
+        using var file = File.OpenRead(TestPaths.OriginalReference("reference-cases.txt.gz"));
         using var gzip = new GZipStream(file, CompressionMode.Decompress);
         using var reader = new StreamReader(gzip, Encoding.UTF8);
         var cases = new List<ReferenceCase>();

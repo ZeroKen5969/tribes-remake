@@ -31,7 +31,7 @@ dotnet test tests/Tribes.Graphics.Tests
 dotnet test tests/Tribes.Graphics.Tests --collect:"XPlat Code Coverage" --results-directory work/coverage-graphics
 ```
 
-`original/tools/asset-ref` 用原版遊戲（`original/reference/game-remapped.jar`，與 DiffHarness 相同的類別載入器與虛擬時鐘）自己的繪圖函式畫出每個測試案例，寫成 `tests/Tribes.Graphics.Tests/Data/reference-cases.txt.gz`（每行：案例參數 | 畫出像素的外框與 CRC32）；地圖畫面由隨機按鍵遊玩擷取到原版儲存庫的 `original/reference/maps/`，同一組按鍵在 DiffHarness 下必須得到逐幀相同的畫面。測試以 `Tribes.Graphics` 組出同樣的案例、逐像素比對。
+`original/tools/asset-ref` 用原版遊戲（`original/reference/game-remapped.jar`，與 DiffHarness 相同的類別載入器與虛擬時鐘）自己的繪圖函式畫出每個測試案例，寫成原版儲存庫的 `original/reference/reference-cases.txt.gz`（每行：案例參數 | 畫出像素的外框與 CRC32）；地圖畫面由隨機按鍵遊玩擷取到原版儲存庫的 `original/reference/maps/`，同一組按鍵在 DiffHarness 下必須得到逐幀相同的畫面。測試以 `Tribes.Graphics` 組出同樣的案例、逐像素比對。
 
 ## 輸出檔案
 

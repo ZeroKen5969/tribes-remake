@@ -2,9 +2,9 @@
 
   <!--
     Tests of Tribes.Graphics and of the exported assets. The pixel tests compare the library's
-    compositions with renderings of the original drawing code (Data/reference-cases.txt.gz, and the
-    map screenshots in original/reference/maps; both written by original/tools/asset-ref/run.sh
-    from the original bytecode).
+    compositions with renderings of the original drawing code (original/reference/reference-cases.txt.gz
+    and the map screenshots in original/reference/maps, both written by
+    original/tools/asset-ref/run.sh from the original bytecode); those tests are in Original/.
   -->
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
