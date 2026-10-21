@@ -47,8 +47,9 @@ public sealed record EndlessWildlifeRules(int HabitatChancePercent, int AnimalsP
 /// <param name="AttackReachCells">An enemy farther than this (cells, camp to camp) is not attacked.</param>
 /// <param name="AttackersPerTarget">At most this many computer tribes send waves at the same tribe at once.</param>
 /// <param name="StrengthPercent">A computer tribe attacks an enemy only while the enemy has at most this percentage of its own living adults.</param>
+/// <param name="HumanReachCells">A human-ruled enemy at most this far (cells, camp to camp) is a computer's first choice, however near its other enemies are; 0 turns this off.</param>
 public sealed record EndlessPacingRules(int OpeningGraceFrames, int NewcomerGraceFrames, int AttackReachCells, int AttackersPerTarget,
-    int StrengthPercent);
+    int StrengthPercent, int HumanReachCells);
 
 /// <summary>The alliance building and what allies may do.</summary>
 /// <param name="SpriteId">The picture the client draws the finished building with.</param>
@@ -120,7 +121,7 @@ public sealed record EndlessRules(int Mission, EndlessLandRules Land, EndlessCam
         Require(Wildlife.HabitatChancePercent is >= 0 and <= 400 && Wildlife.AnimalsPerHabitat > 0 && Wildlife.ActiveDistance > 0
             && Wildlife.FierceKind >= 0 && Wildlife.FierceSharePercent is >= 0 and <= 100, "wildlife");
         Require(Pacing.OpeningGraceFrames >= 0 && Pacing.NewcomerGraceFrames >= 0 && Pacing.AttackReachCells > 0
-            && Pacing.AttackersPerTarget > 0 && Pacing.StrengthPercent > 0, "pacing");
+            && Pacing.AttackersPerTarget > 0 && Pacing.StrengthPercent > 0 && Pacing.HumanReachCells >= 0, "pacing");
         Require(Alliance.InvitationFrames > 0 && Alliance.GoodsCap > 0 && Alliance.Goods.Count > 0, "alliance");
         return this;
     }

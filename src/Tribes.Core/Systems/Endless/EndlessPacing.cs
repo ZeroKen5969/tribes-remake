@@ -131,7 +131,7 @@ internal static class EndlessPacing
     }
 
     /// <summary>How many computer tribes other than <paramref name="attacker"/> have a wave out against <paramref name="target"/>.</summary>
-    private static int Attackers(GameWorld world, int attacker, int target)
+    internal static int Attackers(GameWorld world, int attacker, int target)
     {
         int count = 0;
         foreach (TribeState tribe in world.Tribes)

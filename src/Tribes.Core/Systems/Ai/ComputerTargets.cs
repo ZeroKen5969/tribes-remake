@@ -11,7 +11,10 @@ namespace Tribes.Core.Systems.Ai;
 /// <summary>
 /// The enemy a computer tribe goes for in a match and the places that depend on it: the nearest
 /// enemy still in the match and, among those not more than half as far again, the one with the
-/// fewest living adults (then the nearer, then the lower number); never an ally. The mission's
+/// fewest living adults (then the nearer, then the lower number); never an ally. In an endless
+/// world a human-ruled enemy within the rules' reach comes first, however near the other enemies
+/// are: of several, the one the fewest other computers attack (then the nearer, then the lower
+/// number), so the attacks spread over the people around. The mission's
 /// attack routes and trap and spell areas, made for the way from the computer's village to the
 /// player's camp, are laid onto the way from the computer's camp to that enemy.
 /// </summary>
@@ -37,8 +40,11 @@ internal sealed class ComputerTargets
     public int Choose(int tribe)
     {
         GridPoint home = plans.For(tribe).Home;
+        long peopleReach = PeopleReach();
         var candidates = new List<(int Tribe, long Distance, int Adults)>();
         long nearest = long.MaxValue;
+        int person = -1;
+        (int Attackers, long Distance) personKey = (int.MaxValue, long.MaxValue);
         foreach (int enemy in TribeRoles.EnemiesOf(world, tribe))
         {
             if (TribeStanding.IsOut(world, enemy))
@@ -50,8 +56,21 @@ internal sealed class ComputerTargets
             {
                 continue;
             }
+            if (distance <= peopleReach && TribeRoles.IsPlayer(world, enemy))
+            {
+                int attackers = Endless.EndlessPacing.Attackers(world, tribe, enemy);
+                if (attackers < personKey.Attackers || (attackers == personKey.Attackers && distance < personKey.Distance))
+                {
+                    person = enemy;
+                    personKey = (attackers, distance);
+                }
+            }
             candidates.Add((enemy, distance, TribeStanding.LivingAdults(world, enemy)));
             nearest = Math.Min(nearest, distance);
+        }
+        if (person >= 0)
+        {
+            return person;
         }
         int best = -1;
         (long Distance, int Adults) bestKey = (long.MaxValue, int.MaxValue);
@@ -134,6 +153,20 @@ internal sealed class ComputerTargets
     /// <summary><paramref name="value"/> / <paramref name="divisor"/> rounded to the nearest whole number (halves away from zero).</summary>
     private static int Divide(long value, long divisor) =>
         (int)((value >= 0 ? value + (divisor / 2) : value - (divisor / 2)) / divisor);
+
+    /// <summary>
+    /// How near (squared cells) a human-ruled enemy must be to come first: the endless rules' reach,
+    /// or -1 (never) in other worlds and when the rules turn it off.
+    /// </summary>
+    private long PeopleReach()
+    {
+        if (world.Endless == null)
+        {
+            return -1;
+        }
+        long reach = world.Content.Endless!.Pacing.HumanReachCells;
+        return reach > 0 ? reach * reach : -1;
+    }
 
     private static long SquaredDistance(GridPoint a, GridPoint b)
     {
