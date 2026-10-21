@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    The game rules, written new (docs/REWRITE_PLAN.md, phase 2) and checked against the
-    translated original in Tribes.Legacy. Quality rules are enforced by the build: nullable
+    The game rules, written new and checked against the translated original in Tribes.Legacy
+    (original repository). Quality rules are enforced by the build: nullable
     references, the recommended analyzers, code style, and warnings as errors.
   -->
   <PropertyGroup>

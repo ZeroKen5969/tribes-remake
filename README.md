@@ -12,6 +12,8 @@ THQ Wireless 2008 年 J2ME 手機遊戲《Prehistoric Tribes》以 Godot 4.7.2 .
 
 建置與遊玩只需要前兩個。`original/` 放好時，`tests/Tribes.Core.Tests`、`tests/Tribes.Graphics.Tests`、`tests/Tribes.Client.World.Tests` 會多編進 `Original/` 底下對照翻譯版、原版資源與原版畫面的測試；沒放時不編這些測試，其他照常建置。
 
+`tribes-content` 與 `tribes-original` 含原版遊戲的圖片、音樂、地圖與程式（版權屬 THQ／Gear Games），不公開；公開的只有這個儲存庫的程式碼，單獨無法建置或遊玩。
+
 ```bash
 git clone <tribes-remake 的網址> tribes
 cd tribes
@@ -52,7 +54,6 @@ bash tools/build/package-android.sh              # Android APK
 - 開發時執行 Godot 用 `bash tools/godot-bg.sh`（[BUILD.md](docs/BUILD.md)「在背景執行 Godot（開發用）」）。
 - 發行新版見 [UPDATES.md](docs/UPDATES.md)。
 
-## 其他文件
+## 版權
 
-- [docs/REWRITE_PLAN.md](docs/REWRITE_PLAN.md)：重寫的目標、階段與驗證方法。
-- 遊戲內容版權屬 THQ／Gear Games；本專案僅供個人研究與保存。
+遊戲內容版權屬 THQ／Gear Games；本專案僅供個人研究與保存。
