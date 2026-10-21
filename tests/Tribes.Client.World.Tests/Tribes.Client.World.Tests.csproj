@@ -34,4 +34,14 @@
     <Compile Include="..\..\client\src\World\Scene\**\*.cs" Link="Scene\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <!-- The comparison with the original's frames (in Original/) builds only when the original repository is cloned into original/. -->
+  <ItemGroup Condition="!Exists('$(MSBuildThisFileDirectory)..\..\original\reference\frames')">
+    <Compile Remove="Original\**" />
+  </ItemGroup>
+
+  <!-- The comparison with the original's frames (in Original/) builds only when the original repository is cloned into original/. -->
+  <ItemGroup Condition="!Exists('$(MSBuildThisFileDirectory)..\..\original\reference\frames')">
+    <Compile Remove="Original\**" />
+  </ItemGroup>
+
 </Project>

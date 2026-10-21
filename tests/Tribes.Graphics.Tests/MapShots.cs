@@ -101,7 +101,7 @@ internal sealed class MapShot
     public static IReadOnlyList<MapShot> All()
     {
         var shots = new List<MapShot>();
-        foreach (string directory in Directory.GetDirectories(TestPaths.Reference("maps")).OrderBy(d => d, StringComparer.Ordinal))
+        foreach (string directory in Directory.GetDirectories(TestPaths.OriginalReference("maps")).OrderBy(d => d, StringComparer.Ordinal))
         {
             foreach (string file in Directory.GetFiles(directory, "map-*.txt").OrderBy(f => f, StringComparer.Ordinal))
             {

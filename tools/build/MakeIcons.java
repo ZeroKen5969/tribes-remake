@@ -12,10 +12,10 @@ import java.util.Map;
 import javax.imageio.ImageIO;
 
 /**
- * Builds the app icons of the Godot client from the original art:
- *   game/res/icon.png (48x48, the MIDlet icon) and
- *   android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png (192x192, the earlier Android port).
- * Writes into client/src/Platform/Icons/:
+ * Builds the app icons of the Godot client from the original art in the original repository:
+ *   original/game/res/icon.png (48x48, the MIDlet icon) and
+ *   original/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png (192x192, the earlier Android port).
+ * Writes into the content repository's data/assets/icons/ (Godot reads them as res://assets/icons):
  *   icon-192.png                 Android legacy launcher icon
  *   adaptive-foreground-432.png  Android adaptive icon: the art at 6x inside the 72dp visible area
  *   adaptive-background-432.png  Android adaptive icon: the art's most common border colour
@@ -34,9 +34,9 @@ public final class MakeIcons {
 
     public static void main(String[] args) throws IOException {
         Path root = Path.of(args.length > 0 ? args[0] : ".").toAbsolutePath().normalize();
-        BufferedImage art = read(root.resolve("game/res/icon.png"));
-        BufferedImage launcher = read(root.resolve("android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"));
-        Path out = root.resolve("client/src/Platform/Icons");
+        BufferedImage art = read(root.resolve("original/game/res/icon.png"));
+        BufferedImage launcher = read(root.resolve("original/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"));
+        Path out = root.resolve("data/assets/icons");
         Files.createDirectories(out);
 
         write(launcher, out.resolve("icon-192.png"));

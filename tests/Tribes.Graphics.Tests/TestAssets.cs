@@ -30,6 +30,10 @@ internal static class TestPaths
 
     public static string Reference(params string[] parts) =>
         Path.Combine(RepoRoot(), "tests", "Tribes.Graphics.Tests", "Data", Path.Combine(parts));
+
+    /// <summary>A path in the original repository's reference data (original/reference).</summary>
+    public static string OriginalReference(params string[] parts) =>
+        Path.Combine(RepoRoot(), "original", "reference", Path.Combine(parts));
 }
 
 /// <summary>The exported sprite catalog, its sheets and composers, loaded once.</summary>

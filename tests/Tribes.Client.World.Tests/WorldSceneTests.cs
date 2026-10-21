@@ -10,7 +10,6 @@ using Tribes.Graphics.Imaging;
 using Tribes.Graphics.Model;
 using Tribes.Graphics.Serialization;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Tribes.Client.World.Tests;
 
@@ -63,6 +62,9 @@ internal sealed class Repo
 
     public string Dev(params string[] parts) => Path.Combine(Root, "client", "dev", Path.Combine(parts));
 
+    /// <summary>A path in the original repository's reference data (original/reference).</summary>
+    public string OriginalReference(params string[] parts) => Path.Combine(Root, "original", "reference", Path.Combine(parts));
+
     public IEnumerable<string> Snapshots() =>
         Directory.GetFiles(Dev("snapshots"), "*.trbw").OrderBy(f => f, StringComparer.Ordinal);
 
@@ -73,41 +75,9 @@ internal sealed class Repo
     }
 }
 
-/// <summary>The world view's picture against the original's frames.</summary>
+/// <summary>The world view's picture against the original's (frames: Original/OriginalFrameTests).</summary>
 public sealed class WorldSceneTests
 {
-    private readonly ITestOutputHelper output;
-
-    public WorldSceneTests(ITestOutputHelper output)
-    {
-        this.output = output;
-    }
-
-    [Fact]
-    public void EveryDevSnapshotIsDrawnLikeTheOriginalsFrame()
-    {
-        Repo repo = Repo.Instance;
-        int frames = 0;
-        long compared = 0, stale = 0;
-        foreach (string snapshot in repo.Snapshots())
-        {
-            (GameWorld world, SnapshotView view) = repo.Load(snapshot);
-            string reference = repo.Dev("reference", $"s{view.Seed}", $"f{view.Frame:D5}.png");
-            Assert.True(File.Exists(reference), "missing " + reference + " (run tools/Tribes.DevSnapshots/reference.sh)");
-            RgbaImage screen = FrameCheck.DrawScreen(world, view, repo.Assets, repo.Sheet);
-            FrameCheckResult result = FrameCheck.Measure(view, Png.Decode(File.ReadAllBytes(reference)), screen,
-                FrameCheck.StaleCells(repo.Dev("reference", $"s{view.Seed}", "terrain.txt"), view.Frame),
-                FrameCheck.ObjectCoverage(world, view, repo.Assets, repo.Sheet));
-            Assert.True(result.Unexplained == 0, $"{Path.GetFileName(snapshot)}: {result.Unexplained} pixels differ from the original");
-            Assert.True(result.Compared > 40000, $"{Path.GetFileName(snapshot)}: only {result.Compared} pixels compared");
-            frames++;
-            compared += result.Compared;
-            stale += result.TerrainHistory;
-        }
-        output.WriteLine($"{frames} frames, {compared} pixels compared; {stale} differ where the original's terrain buffer kept earlier pictures");
-        Assert.True(frames >= 12);
-    }
-
     [Fact]
     public void ProjectileArcsWorkedOutFromTheThrowerEqualTheOriginals()
     {

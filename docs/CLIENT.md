@@ -547,7 +547,7 @@ adb -s emulator-5562 shell su 0 am start -n com.prehistoric.tribes.remake/com.go
 - `client/dev/snapshots/sSEED-fFRAME.trbw`：翻譯版原版在規則模式下以隨機按鍵（種子 1、4、6，第 80 幀起）玩到該幀、世界更新結束時的世界（`WorldSnapshot`）；`.json` 是原版當時的鏡頭、畫面狀態，以及被介面蓋住、比對時跳過的螢幕矩形。
 - `client/dev/snapshots/pokes.txt`：每行 `種子 幀 欄位=值;…`，在該幀畫完後改原版的欄位（用來把鏡頭移到畫面外的戰鬥，例如 `b_I`、`b_K` 與重畫地形的 `z_A=true`）。快照工具與 `reference.sh`（以 DiffHarness 的 `--poke`）都套用，所以兩邊的遊戲仍一模一樣；規則模式下規則不看鏡頭。
 - `client/dev/replays/*.trbr`：連續多幀的快照（gzip）。
-- `client/dev/reference/sSEED/fFRAME.png`：同一局在 Java DiffHarness 畫出的原版畫面；`terrain.txt` 是 DiffHarness `--check-terrain` 列出的、原版地形緩衝與重畫結果不同的格子。
+- `original/reference/frames/sSEED/fFRAME.png`（原版儲存庫）：同一局在 Java DiffHarness 畫出的原版畫面；`terrain.txt` 是 DiffHarness `--check-terrain` 列出的、原版地形緩衝與重畫結果不同的格子。沒有 `original/` 時，`tests/Tribes.Client.World.Tests` 不編與原版畫面比對的測試，其他照常執行。
 
 ```bash
 T="dotnet run --project original/tools/Tribes.DevSnapshots --"

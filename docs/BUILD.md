@@ -56,7 +56,7 @@ bash tools/build/package-windows.sh
 | `build/release/windows/check.png` | 檢查用截圖 |
 
 - 腳本最後會把 zip 解到 `build/release/windows/check/`，以 `-- --screenshot=…` 啟動一次，存下截圖就自動結束，用來確認打包出來的遊戲能啟動。加 `--no-run` 跳過這一步。
-- 執行檔圖示是 `client/src/Platform/Icons/icon.ico`。
+- 執行檔圖示是內容儲存庫的 `data/assets/icons/icon.ico`（Godot 讀 `res://assets/icons/`）。
 - 玩家把 zip 解到任一個可寫入的資料夾執行 `PrehistoricTribes.exe` 即可；放在 `Program Files` 這類需要系統管理員權限的位置時，遊戲內更新會失敗（見 UPDATES.md）。
 
 ## Android
@@ -124,7 +124,7 @@ bash tools/android/export-emulator.sh
 |---|---|
 | 套件名稱 | `com.prehistoric.tribes.remake` |
 | App 名稱 | 系統語言為中文（`zh`、`zh_TW`、`zh_HK`）時「史前部落」，其他語言「Prehistoric Tribes」（`project.godot` 的 `config/name_localized` 與匯出設定 `package/name`） |
-| 圖示 | `client/src/Platform/Icons/`：`icon-192.png`（一般圖示）、`adaptive-foreground-432.png` 與 `adaptive-background-432.png`（Android 8 以上的自適應圖示），由 `java tools/build/MakeIcons.java` 從原版圖示產生 |
+| 圖示 | 內容儲存庫的 `data/assets/icons/`（Godot 讀 `res://assets/icons/`）：`icon-192.png`（一般圖示）、`adaptive-foreground-432.png` 與 `adaptive-background-432.png`（Android 8 以上的自適應圖示），由 `java tools/build/MakeIcons.java` 從原版儲存庫的圖示產生 |
 | 權限 | `INTERNET`、`ACCESS_NETWORK_STATE`、`ACCESS_WIFI_STATE`、`CHANGE_WIFI_MULTICAST_STATE`、`REQUEST_INSTALL_PACKAGES` |
 | 螢幕 | 隨裝置方向旋轉（尊重使用者的旋轉鎖定）、沉浸模式 |
 | 最低 Android 版本 | Android 7.0（API 24），目標 API 36 |
